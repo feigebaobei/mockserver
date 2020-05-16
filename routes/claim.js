@@ -1,16 +1,17 @@
 var express = require('express');
 var router = express.Router();
 var utils = require('../lib/utils.js')
+var cors = require('./cors')
 
 // var session = require('express-session');
 // var FileStore = require('session-file-store')(session)
 
 /* GET users listing. */
 router.route('/fingerprint/:claim_sn')
-  .options((req, res) => {
+  .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
   })
-  .get((req, res, next) =>{
+  .get(cors.corsWithOptions, (req, res, next) =>{
     res.status(200).json({
       result: true,
       data: {
@@ -67,21 +68,21 @@ router.route('/fingerprint/:claim_sn')
       message: ""
     })
   })
-  .post((req, res, next) => {
+  .post(cors.corsWithOptions, (req, res, next) => {
     res.send('post')
   })
-  .put((req, res, next) => {
+  .put(cors.corsWithOptions, (req, res, next) => {
     res.send('put')
   })
-  .delete((req, res, next) => {
+  .delete(cors.corsWithOptions, (req, res, next) => {
     res.send('delete')
   })
 
 router.route('/template/:certifyCategoryId')
-  .options((req, res) => {
+  .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
   })
-  .get((req, res, next) =>{
+  .get(cors.corsWithOptions, (req, res, next) =>{
     // 判断参数是否有效
     res.status(200).json({
       result: true,
@@ -109,13 +110,13 @@ router.route('/template/:certifyCategoryId')
       message: ""
     })
   })
-  .post((req, res, next) => {
+  .post(cors.corsWithOptions, (req, res, next) => {
     res.send('post')
   })
-  .put((req, res, next) => {
+  .put(cors.corsWithOptions, (req, res, next) => {
     res.send('put')
   })
-  .delete((req, res, next) => {
+  .delete(cors.corsWithOptions, (req, res, next) => {
     res.send('delete')
   })
 

@@ -1,20 +1,22 @@
 var express = require('express');
 var router = express.Router();
 var utils = require('../lib/utils.js')
+var cors = require('./cors')
 
 // var session = require('express-session');
 // var FileStore = require('session-file-store')(session)
 
 /* GET users listing. */
-router.route('/vcode/:phone')
-  .options((req, res) => {
+router.route('/vcode')
+  .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
   })
-  .get((req, res, next) =>{
+  .get(cors.corsWithOptions, (req, res, next) =>{
     // res.send('respond with a resource');
     // 生产环境使用短信的方式发送。
     // 判断参数是否有效
     // 开发环境使用接口的方式发送。
+    // req.params.phone
     res.status(200).json({
       result: true,
       data: {
@@ -23,21 +25,22 @@ router.route('/vcode/:phone')
       message: ""
     })
   })
-  .post((req, res, next) => {
+  .post(cors.corsWithOptions, (req, res, next) => {
     res.send('post')
   })
-  .put((req, res, next) => {
+  .put(cors.corsWithOptions, (req, res, next) => {
     res.send('put')
   })
-  .delete((req, res, next) => {
+  .delete(cors.corsWithOptions, (req, res, next) => {
     res.send('delete')
   })
 
 router.route('/udidList')
-  .options((req, res) => {
+  .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
   })
-  .get((req, res, next) =>{
+  .get(cors.corsWithOptions, (req, res, next) =>{
+    // req.params.phone
     // 判断参数是否有效
     res.status(200).json({
       result: true,
@@ -57,13 +60,13 @@ router.route('/udidList')
       message: ""
     })
   })
-  .post((req, res, next) => {
+  .post(cors.corsWithOptions, (req, res, next) => {
     res.send('post')
   })
-  .put((req, res, next) => {
+  .put(cors.corsWithOptions, (req, res, next) => {
     res.send('put')
   })
-  .delete((req, res, next) => {
+  .delete(cors.corsWithOptions, (req, res, next) => {
     res.send('delete')
   })
 

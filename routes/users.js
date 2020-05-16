@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 var utils = require('../lib/utils.js')
 var bodyParser = require('body-parser')
+var cors = require('./cors')
 
 // router.use(bodyParser.urlencoded({extended: false}))
 router.use(bodyParser.json())
@@ -10,12 +11,12 @@ router.use(bodyParser.json())
 // var FileStore = require('session-file-store')(session)
 
 /* GET users listing. */
-router.get('/', function(req, res, next) {
+router.get('/', cors.corsWithOptions, function(req, res, next) {
   res.send('respond with a resource');
 });
 
 // 指明需要用户提供那些数据
-router.get('/login/userInfo', (req, res, next) => {
+router.get('/login/userInfo', cors.corsWithOptions, (req, res, next) => {
   // console.log(req.session.id)
   // req.session.save((err) => {
   //   // 应该在数据库记录错误
@@ -40,10 +41,10 @@ router.get('/login/userInfo', (req, res, next) => {
 // })
 // 请求用户信息
 router.route('/userInfo/:uuid')
-  .options((req, res) => {
+  .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
   })
-  .get((req, res, next) => {
+  .get(cors.corsWithOptions, (req, res, next) => {
     // 从mongodb里，根key取出用户属性。
     // res.send('get')
     // setTimeout(() => {
@@ -73,23 +74,23 @@ router.route('/userInfo/:uuid')
     }
   })
   // 接收用户属性
-  .post((req, res, next) => {
+  .post(cors.corsWithOptions, (req, res, next) => {
     // 检查mongodb里是否有uuid。
     // 使用`·utils.getUuid()`生成一个key，其对应值为用户属性。保存在mongodb里。
     res.send(true)
   })
-  .put((req, res, next) => {
+  .put(cors.corsWithOptions, (req, res, next) => {
     res.send('put')
   })
-  .delete((req, res, next) => {
+  .delete(cors.corsWithOptions, (req, res, next) => {
     res.send('delete')
   })
 
 router.route('/phone/checkCode')
-  .options((req, res) => {
+  .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
   })
-  .get((req, res, next) => {
+  .get(cors.corsWithOptions, (req, res, next) => {
     // 生产环境使用短信的方式发送。
     // 开发环境使用接口的方式发送。
     res.status(200).json({
@@ -100,7 +101,7 @@ router.route('/phone/checkCode')
       message: ""
     })
   })
-  .post((req, res, next) => {
+  .post(cors.corsWithOptions, (req, res, next) => {
     console.log('2134567')
     console.log(JSON.stringify(req.body))
     // res.send('post')
@@ -112,21 +113,21 @@ router.route('/phone/checkCode')
       message: '2345resx'
     })
   })
-  .put((req, res, next) => {
+  .put(cors.corsWithOptions, (req, res, next) => {
     res.send('put')
   })
-  .delete((req, res, next) => {
+  .delete(cors.corsWithOptions, (req, res, next) => {
     res.send('delete')
   })
 
 router.route('/receive')
-  .options((req, res) => {
+  .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
   })
-  .get((req, res, next) => {
+  .get(cors.corsWithOptions, (req, res, next) => {
     res.send('get')
   })
-  .post((req, res, next) => {
+  .post(cors.corsWithOptions, (req, res, next) => {
     console.log('2134567')
     console.log(JSON.stringify(req.body))
     if (req.body.name && req.body.avatar && req.body.udid) {
@@ -143,10 +144,10 @@ router.route('/receive')
       })
     }
   })
-  .put((req, res, next) => {
+  .put(cors.corsWithOptions, (req, res, next) => {
     res.send('put')
   })
-  .delete((req, res, next) => {
+  .delete(cors.corsWithOptions, (req, res, next) => {
     res.send('delete')
   })
 
