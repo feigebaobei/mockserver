@@ -36,6 +36,7 @@ router.route('/pvdata')
   })
   .get(cors.corsWithOptions, (req, res, next) => {
     // req.params.did
+    console.log('did to test')
     res.status(200).json({result: true, message: '',
       // data: {
       //   "did": "did:ttm:u043829681e922731094502ebffdf1f10389c3ad11c8a67847c68f0482e608",
@@ -101,6 +102,22 @@ router.route('/pvdata')
     res.send('delete')
   })
 
+router.route('/pvdataserver')
+  .options(cors.corsWithOptions, (req, res) => {
+    res.sendStatus(200)
+  })
+  .get(cors.corsWithOptions, (req, res, next) => {
+    res.send('get')
+  })
+  .post(cors.corsWithOptions, (req, res, next) => {
+    res.send('post')
+  })
+  .put(cors.corsWithOptions, (req, res, next) => {
+    res.send('put')
+  })
+  .delete(cors.corsWithOptions, (req, res, next) => {
+    res.send('delete')
+  })
 
 
 module.exports = router;
