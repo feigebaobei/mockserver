@@ -11,8 +11,8 @@ router.route('/vcode')
   .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
   })
-  // .get(cors.corsWithOptions, (req, res, next) =>{
-  .get((req, res, next) =>{
+  .get(cors.corsWithOptions, (req, res, next) =>{
+  // .get((req, res, next) =>{
     // res.send('respond with a resource');
     // 生产环境使用短信的方式发送。
     // 判断参数是否有效

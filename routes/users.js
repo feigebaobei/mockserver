@@ -39,7 +39,7 @@ router.get('/login/userInfo', cors.corsWithOptions, (req, res, next) => {
 // router.post('/login', (req, res, next) => {
 //   res.send({name: 'tank', avatar: 'https://ss1.bdstatic.com/70cFuXSh_Q1YnxGkpoWK1HF6hhy/it/u=1718143317,3612074652&fm=26&gp=0.jpg'})
 // })
-// 请求用户信息
+// 前端请求用户信息
 router.route('/userInfo/:uuid')
   .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
