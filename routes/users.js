@@ -151,45 +151,4 @@ router.route('/receive')
     res.send('delete')
   })
 
-// 接收用户信息
-// router.route('/userInfo/receive')
-//   .options((req, res) => {
-//     res.sendStatus(200)
-//   })
-//   .get((req, res, next) => {
-//     res.send('get')
-//   })
-//   // 接收用户属性
-//   .post((req, res, next) => {
-//     // 检查name/avatar/udid
-//     // console.log(req)
-//     // console.log(req.body)
-//     // if (req.body.name && req.body.avatar && req.body.udid) {
-//     //   res.status(200).json({
-//     //     result: true,
-//     //     data: JSON.stringify(req.body),
-//     //     message: ''
-//     //   })
-//     // } else {
-//     //   res.status(500).json({
-//     //     result: false,
-//     //     error: '没有name/avatar/udid.',
-//     //     message: ''
-//     //   })
-//     // }
-//     console.log('2134567')
-//     res.send('post')
-//     // res.status(500).json({
-//     //   result: false,
-//     //   error: '没有name/avatar/udid.',
-//     //   message: ''
-//     // })
-//   })
-//   .put((req, res, next) => {
-//     res.send('put')
-//   })
-//   .delete((req, res, next) => {
-//     res.send('delete')
-//   })
-
 module.exports = router;
