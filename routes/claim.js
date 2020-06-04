@@ -317,35 +317,40 @@ router.route('/signCertify')
         error: ''
       })
     })
-    // let certifyData = {}
-    // for (let [key, value] of Object.entries(certify.data)) {
-    //   // if (hashDataItem.hasOwnProperty(key)) {
-    //    if (hashDataItem.includes(key)) {
-    //     certifyData[key] = {
-    //       value: new tokenSDKServer.sm3().sum(value),
-    //       hasHash: true
-    //     }
-    //   } else {
-    //     certifyData[key] = {
-    //       value: value,
-    //       hasHash: false
-    //     }
-    //   }
-    // }
-    // // console.log('certifyData', certifyData)
-    // tokenSDKServer.setTemporaryCertifyData(claim_sn, certify.templateId, certifyData, expire, purpose).then(response => {
-    //   res.status(200).json({
-    //     result: true,
-    //     message: '',
-    //     data: response.data.data
-    //   })
-    // }).catch(erro => {
-    //   res.status(200).json({
-    //     result: false,
-    //     message: '',
-    //     error: ''
-    //   })
-    // })
+  })
+  .put(cors.corsWithOptions, (req, res, next) => {
+    res.send('put')
+  })
+  .delete(cors.corsWithOptions, (req, res, next) => {
+    res.send('delete')
+  })
+
+router.route('/needSignCertify')
+  .options(cors.corsWithOptions, (req, res) => {
+    res.sendStatus(200)
+  })
+  .get(cors.corsWithOptions, (req, res, next) =>{
+    // res.send('get')
+    res.status(200).json({
+      result: true,
+      message: '',
+      data: [
+        '765b7d7a-1b6d-fae1-e928-c3c24a5ad848',
+        '65b7d7a-1b6d-fae1-e928-c3c24a5ad8487',
+        '5b7d7a-1b6d-fae1-e928-c3c24a5ad84876',
+        'b7d7a-1b6d-fae1-e928-c3c24a5ad848765'
+      ]
+    })
+  })
+  .post(cors.corsWithOptions, (req, res, next) => {
+    // res.send('post')
+    let {temporaryID} = req.body
+    // 保存到数据库里
+    res.status(200).json({
+      result: true,
+      message: '',
+      data: temporaryID
+    })
   })
   .put(cors.corsWithOptions, (req, res, next) => {
     res.send('put')
