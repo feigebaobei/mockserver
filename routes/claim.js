@@ -302,7 +302,8 @@ router.route('/signCertify')
       let {prikey: priStr} = JSON.parse(mt)
       let sign = tokenSDKServer.sm2.genKeyPair(priStr).signSha512(`the claimSN${claim_sn}and${certify.templateId}=${hashCont}validated by${did}=${name}timeout at${expire}${explain}`)
       console.log('sign', sign)
-      tokenSDKServer.signCertify(did, claim_sn, certify.templateId, hashCont, new Date().getTime(), sign).then(response => {
+      // tokenSDKServer.signCertify(did, claim_sn, certify.templateId, hashCont, new Date().getTime(), sign).then(response => {
+      tokenSDKServer.signCertify(did, claim_sn, certify.templateId, hashCont, expire, sign).then(response => {
         console.log('response', response.data)
         res.status(200).json({
           result: true,
