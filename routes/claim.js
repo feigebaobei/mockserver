@@ -281,6 +281,12 @@ router.route('/signCertify')
     res.send('get')
   })
   .post(cors.corsWithOptions, (req, res, next) => {
+    res.status(200).json({
+      result: true,
+      message: '服务端接收到了数据',
+      data: {}
+    })
+    return null
     // res.send('post')
     // let claim_sn = res.body.claim_sn
     let {claim_sn, expire, explain} = req.body
