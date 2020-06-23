@@ -272,6 +272,7 @@ router.route('/genPoster')
     res.send('delete')
   })
 
+// 使用certifyData请求签发证书。
 router.route('/signCertify')
   .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
