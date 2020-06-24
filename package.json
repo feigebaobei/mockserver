@@ -4,8 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/www",
-    "nm": "nodemon ./bin/www",
-    "nmi": "nodemon --inspect ./bin/www"
+    "nm": "nodemon ./bin/www --watch ./node_modules/token-sdk-server"
   },
   "dependencies": {
     "axios": "^0.19.2",
