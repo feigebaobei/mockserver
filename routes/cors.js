@@ -14,7 +14,7 @@ var whiteList = [
 ]
 var corsOptionDelegate = (req, cb) => {
   var corsOptions
-  console.log('req.header', req.header)
+  // console.log('req.header', req.header)
   if (whiteList.indexOf(req.header('Origin')) !== -1 || !origin) {
     corsOptions = {
       origin: true,
