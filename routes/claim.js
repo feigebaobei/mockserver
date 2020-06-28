@@ -8,8 +8,8 @@ var fs = require('fs')
 const Base64 = require('js-base64').Base64
 var bodyParser = require('body-parser')
 
-router.use(bodyParser.json({limit: '11mb'}))
-router.use(bodyParser.urlencoded({limit: '11mb', extended: true}))
+router.use(bodyParser.json({limit: '10240kb'}))
+router.use(bodyParser.urlencoded({limit: '10240kb', extended: true}))
 // router.use(bodyParser.json())
 
 // var session = require('express-session');
