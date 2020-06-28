@@ -9,6 +9,7 @@ const Base64 = require('js-base64').Base64
 var bodyParser = require('body-parser')
 
 router.use(bodyParser.json({limit: '11mb'}))
+router.use(bodyParser.urlencoded({limit: '11mb', extended: true}))
 // router.use(bodyParser.json())
 
 // var session = require('express-session');
@@ -307,7 +308,7 @@ router.route('/signCertify')
         }
       }).then(response => {
         let accessToken = response
-        return {result: {score: 90}}
+        // return {result: {score: 90}}
         // 调用百度的 公安验证 接口判断活体照片与公安小图是否一致
         return utils.publicVerify(accessToken, pic, certifyData.identityNumber, certifyData.name).then(response => {
           return response.data
