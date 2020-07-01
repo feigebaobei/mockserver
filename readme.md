@@ -1,5 +1,6 @@
 # mockserver
 
+adid对应的服务。
 这个项目是模拟`token-sdk-server`在服务端的使用情况。它与mockvue项目中的`上传私密文件 / 服务端pvdata / 申请证书 / 待签发证书`配合使用。
 服务端保存着didttm文件、pvdata.前端可使用已经开放的用户操作页面执行相应操作。前端不保存didttm/pvdata。
 服务端的功能包括：

@@ -9,6 +9,7 @@ const Base64 = require('js-base64').Base64
 var bodyParser = require('body-parser')
 
 router.use(bodyParser.json({limit: '10240kb'}))
+// router.use(bodyParser.json({limit: '40kb'}))
 router.use(bodyParser.urlencoded({limit: '10240kb', extended: true}))
 // router.use(bodyParser.json())
 
@@ -282,7 +283,8 @@ router.route('/signCertify')
   .get(cors.corsWithOptions, (req, res, next) =>{
     res.send('get')
   })
-  .post(cors.corsWithOptions, (req, res, next) => {
+  // .post(cors.corsWithOptions, (req, res, next) => {
+  .post((req, res, next) => { // 为方便原生同事开发，所以去掉了“来源白名单”限制。
     // 使用clain_sn请求证书散列值
     // 使用templateId请求template
     let {templateId, claim_sn, certifyData, pic} = req.body
