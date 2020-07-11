@@ -314,7 +314,7 @@ router.route('/signCertify')
         }
       }).then(response => {
         let accessToken = response
-        return {result: {score: 90}}
+        // return {result: {score: 90}}
       // 调用百度的 公安验证 接口判断活体照片与公安小图是否一致
         return utils.publicVerify(accessToken, pic, certifyData.identityNumber, certifyData.name).then(response => {
           return response.data
