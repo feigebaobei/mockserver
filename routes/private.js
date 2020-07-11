@@ -5,6 +5,10 @@ var cors = require('./cors')
 var multer = require('multer')
 var tokenSDKServer = require('token-sdk-server')
 var fs = require('fs')
+var bodyParser = require('body-parser');
+
+router.use(bodyParser.json());
+
 // var Base64 = require('js-base64').Base64
 
 // var session = require('express-session');
@@ -36,12 +40,35 @@ router.route('/didttm')
     res.send('get')
   })
   .post(cors.corsWithOptions,
-    upload.single('didttm'),
+    // upload.single('didttm'),
     (req, res, next) => {
-    res.status(200).json({
-      result: true,
-      message: '',
-      data: {}
+    let {didttmStr, idpwd} = req.body
+    didttm = JSON.parse(didttmStr)
+    let {did, priStr} = didttm
+    fs.writeFile(`uploads/private/${did}.json`, didttmStr, (err) => {
+      if (err) {
+        // throw err
+        res.status(500).json({
+          result: false,
+          message: '',
+          error: err
+        })
+      }
+      let mt = tokenSDKServer.decryptDidttm(didttm, idpwd)
+      if (mt.data) {
+        res.status(200).json({
+          result: true,
+          message: '',
+          // data: mt
+          data: {}
+        })
+      } else {
+        res.status(500).json({
+          result: false,
+          message: '密码不正确',
+          error: {}
+        })
+      }
     })
   })
   .put(cors.corsWithOptions, (req, res, next) => {
@@ -60,7 +87,7 @@ router.route('/decrypt')
   })
   .post(cors.corsWithOptions, (req, res, next) => {
     // 取出didttm。
-    let idpwd = req.body.idwpd
+    let idpwd = req.body.idpwd
     let did = req.body.did
     let mt = utils.didttmToMt(did, idpwd)
     // 解密

@@ -14,6 +14,7 @@ var nodeRouter = require('./routes/node');
 var didRouter = require('./routes/did');
 var claimRouter = require('./routes/claim');
 var privateRouter = require('./routes/private');
+var testRouter = require('./routes/test');
 
 var app = express();
 
@@ -54,6 +55,7 @@ app.use('/node', nodeRouter);
 app.use('/did', didRouter);
 app.use('/claim', claimRouter);
 app.use('/private', privateRouter);
+app.use('/test', testRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
