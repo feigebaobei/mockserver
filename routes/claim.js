@@ -7,6 +7,7 @@ var tokenSDKServer = require('token-sdk-server')
 var fs = require('fs')
 const Base64 = require('js-base64').Base64
 var bodyParser = require('body-parser')
+var multer = require('multer')
 
 router.use(bodyParser.json({limit: '10240kb'}))
 // router.use(bodyParser.json({limit: '40kb'}))
@@ -15,6 +16,30 @@ router.use(bodyParser.urlencoded({limit: '10240kb', extended: true}))
 
 // var session = require('express-session');
 // var FileStore = require('session-file-store')(session)
+
+let upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, 'tokenSDKData/businessLicense')
+    },
+    filename: (req, file, cb) => {
+      // console.log('file', file)
+      let arr = file.originalname.split('.')
+      let name = ''
+      for (let i = 0, iLen = arr.length - 1; i < iLen; i++) {
+        name += arr[i]
+      }
+      name += String(Math.floor(Math.random() * 100000))
+      cb(null, `${name}.${arr[arr.length - 1]}`)
+    }
+  }),
+  fileFilter: (req, file, cb) => {
+    if (file.originalname.match(/\.[png|jpg|jpeg]$/)) {
+      return cb(new Error('图片格式不正确。请上传png|jpg|jpeg图片。'), false)
+    }
+    cb (null, true)
+  }
+})
 
 router.route('/applyCertify')
   .options(cors.corsWithOptions, (req, res) => {
@@ -512,6 +537,215 @@ router.route('/needSignCertify')
     res.send('delete')
   })
 
+router.route('/legelPersonQualification')
+  .options(cors.corsWithOptions, (req, res) => {
+    res.sendStatus(200)
+  })
+  .get(cors.corsWithOptions, (req, res, next) =>{
+    res.send('get')
+  })
+  .post(cors.corsWithOptions,
+   upload.single('businessLicense'),
+   (req, res, next) => {
+    let {sign, ocrData, claim_sn, businessLicense, orgName} = req.body
+    // 检查参数是否正确
+    if (!sign || !ocrData || !claim_sn || !orgName) {
+      res.status(500).json({
+        result: false,
+        message: '参数不正确',
+        error: {}
+      })
+      return
+    }
+    // 验签
+    let isok = tokenSDKServer.verify({sign})
+    isok = true
+    if (!isok) {
+      res.status(200).json({
+        result: true,
+        message: '验签不通过',
+        error: {}
+      })
+      return
+    }
+    let {didttm, idpwd} = require('../tokenSDKData/privateConfig.js')//.didttm.did
+    let priStr = tokenSDKServer.decryptDidttm(didttm, idpwd)
+    priStr = JSON.parse(priStr.data).prikey
+    // 检查是否签过
+    tokenSDKServer.getCertifyFingerPrint(claim_sn, true).then(response => {
+      return true // 测试用
+      if (response.data.result) {
+        let sign_list = response.data.result.sign_list
+        let has = sign_list.some((item) => {
+          return item.name === didttm.nickname && new Date().getTime() < item.expire
+        })
+        if (has) {
+          // return Promise.reject(new Error('不能在签名有效期内重复签名'))
+          res.status(200).json({
+            result: true,
+            message: '不能在签名有效期内重复签名',
+            data: ''
+          })
+          return
+        } else {
+          return true
+        }
+      } else {
+        return Promise.reject(new Error('请求证书的签名列表失败'))
+      }
+    }).then(bool => {
+    // 检查是否正在签发。
+      return tokenSDKServer.getPvData(didttm.did).then(response => {
+        if (response.data.result) {
+          let pvdata = JSON.parse(tokenSDKServer.decryptPvData(response.data.result.data, priStr))
+          // console.log('pvdata', pvdata)
+          if (!pvdata.hasOwnProperty('pendingTask')) {
+            return pvdata
+          } else {
+            if (pvdata.pendingTask[claim_sn]) {
+              res.status(200).json({
+                result: true,
+                message: '正在等待人工审核或父did签名，请耐心等待。',
+                data: ''
+              })
+              return
+            } else {
+              return pvdata
+            }
+          }
+        }
+      })
+    })
+    // app端备份图片
+    // .then(pvdata => {
+    // // 备份图片
+    //   let key = '0x' + tokenSDKServer.hashKeccak256(`${didttm.did}with${businessLicense}`)
+    //   let type = 'bigdata'
+    //   let picCt = tokenSDKServer.encryptPvData(businessLicense, priStr)
+    //   let signObj = `update backup file${picCt}for${didttm.did}with${key}type${type}`
+    //   let sign = tokenSDKServer.sign({keys: priStr, msg: signObj})
+    //   let signStr = `0x${sign.r.toString('hex')}${sign.s.toString('hex')}00`
+    //   return tokenSDKServer.backupData(didttm.did, key, type, picCt, signStr).then(response => {
+    //     console.log(response.data)
+    //   })
+    // })
+    .then(pvdata => {
+    // 备份pvdata
+      // console.log('pvdata', pvdata)
+      if (!pvdata.hasOwnProperty('pendingTask')) {
+        pvdata.pendingTask = {}
+      }
+      let obj = {
+        ocrData: JSON.parse(ocrData),
+        picBase64: businessLicense,
+        isPersonCheck: false,
+        isPdidCheck: false
+      }
+      pvdata.pendingTask[claim_sn] = obj
+      let key = '0x' + tokenSDKServer.hashKeccak256(didttm.did)
+      // console.log('pvdata', pvdata)
+      let pvdataCt = tokenSDKServer.encryptPvData(pvdata, priStr)
+      // console.log('pvdataCt', pvdataCt)
+      let type = 'pvdata'
+      let signObj = `update backup file${pvdataCt}for${didttm.did}with${key}type${type}`
+      let sign = tokenSDKServer.sign({keys: priStr, msg: signObj})
+      let signStr = `0x${sign.r.toString('hex')}${sign.s.toString('hex')}00`
+      // console.log('pvdataCt.length', pvdataCt.length)
+      // let mt = tokenSDKServer.decryptPvData(pvdataCt, priStr)
+      // console.log('mt', JSON.parse(mt))
+
+      // console.log('signStr', signStr)
+      return tokenSDKServer.backupData(didttm.did, key, 'pvdata', pvdataCt, signStr).then(response => {
+        console.log(response.data)
+        if (response.data.result) {
+          return res.status(200).json({
+            result: true,
+            message: '成功接收请求，请耐心等待。',
+            data: ''
+          })
+        } else {
+          return Promise.reject(new Error('服务端备份pvdata失败'))
+        }
+      })
+    }).catch(error => {
+      // console.log(error)
+      res.status(500).json({
+        result: false,
+        message: error.message,
+        error: {}
+      })
+    })
+    // 检查是否正在签发。
+    // let hasPendding = tokenSDKServer.accessPendding(claim_sn)
+    // if (hasPendding) {
+    //   res.status(200).json({
+    //     result: true,
+    //     message: '正在办理签发。请求耐心等待。',
+    //     error: {}
+    //   })
+    //   return
+    // }
+    // // 通过验签、没有被签过、没有正在办理，则添加为待签项。
+
+
+
+    // // 保存到pvdata
+    // let {didttm, idpwd} = require('../tokenSDKData/privateConfig.js')//.didttm.did
+    // let priStr = tokenSDKServer.decryptDidttm(didttm, idpwd)
+    // priStr = JSON.parse(priStr.data).prikey
+
+    // // let pvdataCt = fs.readFileSync('tokenSDKData/pvdataCt.txt').toString()
+    // // tokenSDKServer.localSavePvdata(pvdataCt, priStr, claim_sn, ocrData, file.path)
+    // tokenSDKServer.getPvData(didttm.did).then(response => {
+    //   if (response.data.result) {
+    //     // tokenSDKServer.localSavePvdata(response.data.result.data, priStr, claim_sn, ocrData, file.path)
+    //     tokenSDKServer.setPendingTask(response.data.result.data, priStr, claim_sn, ocrData, businessLicense)
+    //   }
+    // }).catch(error => {
+    //   console.log('error', error)
+    // })
+
+    // // tokenSDKServer.setCertifyUnfinish(pvdata, file, ocrData)
+    // res.status(200).json({
+    //   result: true,
+    //   message: '请等待人工审核结果。',
+    //   data: {}
+    // })
+
+
+
+
+
+  })
+  .put(cors.corsWithOptions, (req, res, next) => {
+    res.send('put')
+  })
+  .delete(cors.corsWithOptions, (req, res, next) => {
+    res.send('delete')
+  })
+
+// 未完成签发的企业认证列表
+router.route('/penddingTask/{claim_sn}')
+  .options(cors.corsWithOptions, (req, res) => {
+    res.sendStatus(200)
+  })
+  .get(cors.corsWithOptions, (req, res, next) =>{
+    res.send('get')
+  })
+  .post(cors.corsWithOptions, (req, res, next) => {
+    // res.send('post'),
+    // let {}
+    tokenSDKServer.getCertifyUnfinish()
+    // 验签
+    // 保存到pvdata
+
+  })
+  .put(cors.corsWithOptions, (req, res, next) => {
+    res.send('put')
+  })
+  .delete(cors.corsWithOptions, (req, res, next) => {
+    res.send('delete')
+  })
 
 
 module.exports = router;

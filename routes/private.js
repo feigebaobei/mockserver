@@ -44,32 +44,27 @@ router.route('/didttm')
     (req, res, next) => {
     let {didttmStr, idpwd} = req.body
     didttm = JSON.parse(didttmStr)
-    let {did, priStr} = didttm
-    fs.writeFile(`uploads/private/${did}.json`, didttmStr, (err) => {
-      if (err) {
-        // throw err
-        res.status(500).json({
-          result: false,
-          message: '',
-          error: err
-        })
-      }
-      let mt = tokenSDKServer.decryptDidttm(didttm, idpwd)
-      if (mt.data) {
-        res.status(200).json({
-          result: true,
-          message: '',
-          // data: mt
-          data: {}
-        })
-      } else {
-        res.status(500).json({
-          result: false,
-          message: '密码不正确',
-          error: {}
-        })
-      }
-    })
+    // let {did, priStr} = didttm
+    // 解密didttm
+    // 若成功则保存didttm/idpwd到lib/privateConfig.js里
+    // 返回结果
+    let mt = tokenSDKServer.decryptDidttm(didttm, idpwd)
+    if (mt.data) {
+      tokenSDKServer.init()
+      tokenSDKServer.setDidttm(didttm, idpwd)
+      var exportData = require('../tokenSDKData/privateConfig.js')
+      res.status(200).json({
+        result: true,
+        message: '',
+        data: exportData
+      })
+    } else {
+      res.status(500).json({
+        result: true,
+        message: '密码与didttm不配置',
+        error: {}
+      })
+    }
   })
   .put(cors.corsWithOptions, (req, res, next) => {
     res.send('put')
