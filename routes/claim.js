@@ -598,17 +598,18 @@ router.route('/legelPersonQualification')
       return tokenSDKServer.getPvData(didttm.did).then(response => {
         if (response.data.result) {
           let pvdata = JSON.parse(tokenSDKServer.decryptPvData(response.data.result.data, priStr))
-          console.log('pvdata', pvdata)
+          // console.log('pvdata', pvdata)
           if (!pvdata.hasOwnProperty('pendingTask')) {
             return pvdata
           } else {
             if (pvdata.pendingTask[claim_sn]) {
+              // return 
               res.status(200).json({
                 result: true,
                 message: '正在等待人工审核或父did签名，请耐心等待。',
                 data: ''
               })
-              return
+              return false
             } else {
               return pvdata
             }
@@ -629,66 +630,82 @@ router.route('/legelPersonQualification')
     //     console.log(response.data)
     //   })
     // })
+    // .then(pvdata => {
+    // // 保存图片的base64
+    //   // businessLicense 是无前缀的base64
+    //   let key = tokenSDKServer.hashKeccak256(businessLicense)
+    //   fs.writeFileSync(`tokenSDKData/businessLicense/${key}.txt`, businessLicense)
+    //   return {pvdata, key}
+    // })
+    // .then((pvdata, picBase64HashStr) => {
     .then(pvdata => {
-    // 保存图片的base64
-      let key = tokenSDKServer.hashKeccak256(businessLicense)
-      fs.writeFileSync(`tokenSDKData/businessLicense/${key}.txt`, businessLicense)
-      return {pvdata, key}
-    })
-    .then((pvdata, picBase64HashStr) => {
-    // 备份pvdata
-      // console.log('pvdata', pvdata)
-      if (!pvdata.hasOwnProperty('pendingTask')) {
-        pvdata.pendingTask = {}
-      }
-      // console.log('ocrData', ocrData)
-      // console.log(JSON.parse(ocrData))
-      let obj = {
-        ocrData: JSON.parse(ocrData),
-        // picBase64: businessLicense,
-        picBase64: picBase64HashStr,
-        isPersonCheck: false,
-        isPdidCheck: false,
-        '注释':req.body['注释'],
-        addressInfo: req.body.addressInfo,
-        applicantBankAccountName: req.body.applicantBankAccountName,
-        applicantBankName: req.body.applicantBankName,
-        applicantBankAccountNumber: req.body.applicantBankAccountNumber,
-        receiveBankName: req.body.receiveBankName,
-        receiveBankAccountName: req.body.receiveBankAccountName,
-        receiveBankAccountNumber: req.body.receiveBankAccountNumber,
-        verificationMoney: req.body.verificationMoney,
-        // claim_sn: req.body.claim_sn,
-        // sign: req.body.sign,
-      }
-      pvdata.pendingTask[claim_sn] = obj
-      let key = '0x' + tokenSDKServer.hashKeccak256(didttm.did)
-      // console.log('pvdata', pvdata)
-      let pvdataCt = tokenSDKServer.encryptPvData(pvdata, priStr)
-      // console.log('pvdataCt', pvdataCt)
-      let type = 'pvdata'
-      let signObj = `update backup file${pvdataCt}for${didttm.did}with${key}type${type}`
-      let sign = tokenSDKServer.sign({keys: priStr, msg: signObj})
-      let signStr = `0x${sign.r.toString('hex')}${sign.s.toString('hex')}00`
-      // console.log('pvdataCt.length', pvdataCt.length)
-      // let mt = tokenSDKServer.decryptPvData(pvdataCt, priStr)
-      // console.log('mt', JSON.parse(mt))
-
-      // console.log('signStr', signStr)
-      return tokenSDKServer.backupData(didttm.did, key, 'pvdata', pvdataCt, signStr).then(response => {
-        // console.log(response.data)
-        if (response.data.result) {
-          return res.status(200).json({
-            result: true,
-            message: '成功接收请求，请耐心等待。',
-            data: ''
-          })
-        } else {
-          return Promise.reject(new Error('服务端备份pvdata失败'))
+      if (pvdata) {
+        // console.log('pvdata', pvdata)
+      // 备份pvdata
+        // console.log('pvdata', pvdata)
+        if (!pvdata.hasOwnProperty('pendingTask')) {
+          pvdata.pendingTask = {}
         }
-      })
+        // console.log('ocrData', ocrData)
+        // console.log(JSON.parse(ocrData))
+        let obj = {
+          ocrData: JSON.parse(ocrData),
+          picBase64: businessLicense, // businessLicense 是bigdata的key
+          // picBase64: picBase64HashStr,
+          orgName: orgName,
+          isPersonCheck: false,
+          isPdidCheck: false,
+          '注释':req.body['注释'],
+          addressInfo: req.body.addressInfo,
+          applicantBankAccountName: req.body.applicantBankAccountName,
+          applicantBankName: req.body.applicantBankName,
+          applicantBankAccountNumber: req.body.applicantBankAccountNumber,
+          receiveBankName: req.body.receiveBankName,
+          receiveBankAccountName: req.body.receiveBankAccountName,
+          receiveBankAccountNumber: req.body.receiveBankAccountNumber,
+          verificationMoney: req.body.verificationMoney,
+          // claim_sn: req.body.claim_sn,
+          // sign: req.body.sign,
+        }
+        pvdata.pendingTask[claim_sn] = obj
+        let key = '0x' + tokenSDKServer.hashKeccak256(didttm.did)
+        // console.log('pvdata', pvdata)
+        let pvdataCt = tokenSDKServer.encryptPvData(pvdata, priStr)
+        // console.log('pvdataCt', pvdataCt)
+        let type = 'pvdata'
+        let signObj = `update backup file${pvdataCt}for${didttm.did}with${key}type${type}`
+        let sign = tokenSDKServer.sign({keys: priStr, msg: signObj})
+        let signStr = `0x${sign.r.toString('hex')}${sign.s.toString('hex')}00`
+        // console.log('pvdataCt.length', pvdataCt.length)
+        // let mt = tokenSDKServer.decryptPvData(pvdataCt, priStr)
+        // console.log('mt', JSON.parse(mt))
+
+        // console.log('signStr', signStr)
+
+
+
+
+
+        return tokenSDKServer.backupData(didttm.did, key, 'pvdata', pvdataCt, signStr).then(response => {
+          // console.log(response.data)
+          if (response.data.result) {
+            return res.status(200).json({
+              result: true,
+              message: '成功接收请求，请耐心等待。',
+              data: ''
+            })
+          } else {
+            return Promise.reject(new Error('服务端备份pvdata失败'))
+          }
+        })
+
+
+
+
+
+      }
     }).catch(error => {
-      // console.log(error)
+      console.log(error)
       res.status(500).json({
         result: false,
         message: error.message,
@@ -750,18 +767,13 @@ router.route('/pendingTask')
     res.sendStatus(200)
   })
   .get(cors.corsWithOptions, (req, res, next) =>{
-    // let claim_sn = req.params.claim_sn
     let claim_sn = req.query.claim_sn
     let {didttm, idpwd} = require('../tokenSDKData/privateConfig.js')
     let priStr = JSON.parse(tokenSDKServer.decryptDidttm(didttm, idpwd).data).prikey
-    // console.log(priStr)
-    // let priStr = JSON.parse(tokenSDKServer.decryptDidttm(didttm, idpwd)).prikey
-    // console.log('claim_sn', claim_sn)
     tokenSDKServer.getPvData(didttm.did).then(response => {
       if (response.data.result) {
         let pvdata = tokenSDKServer.decryptPvData(response.data.result.data, priStr)
         pvdata = JSON.parse(pvdata)
-        // console.log(pvdata)
         let list = pvdata.pendingTask || {}
         if (!claim_sn) {
           res.status(200).json({
@@ -769,12 +781,14 @@ router.route('/pendingTask')
             message: '',
             data: list
           })
+          return
         } else {
           res.status(200).json({
             result: true,
             message: '',
             data: list[claim_sn] || {}
           })
+          return
         }
       } else {
         return Promise.reject(new Error('请求pvdata出错'))
@@ -785,15 +799,8 @@ router.route('/pendingTask')
         message: error.message,
         error: {}
       })
+      return
     })
-    // if (!claim_sn) {
-    // } else {
-
-    // }
-    // res.send('get')
-    // tokenSDKServer.getPvData(didttm.did).then(response => {
-    //   console.log(response.data)
-    // })
   })
   .post(cors.corsWithOptions, (req, res, next) => {
     // res.send('post'),
