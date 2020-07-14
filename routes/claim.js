@@ -783,17 +783,35 @@ router.route('/pendingTask')
           })
           return
         } else {
-          res.status(200).json({
-            result: true,
-            message: '',
-            data: list[claim_sn] || {}
+          let obj = list[claim_sn] || {}
+          // 请求pic的base64
+          let picKey = list[claim_sn].picBase64
+          // console.log(picKey)
+          return tokenSDKServer.pullData(picKey, false).then(response => {
+            // console.log(response)
+            // console.log('图片的base64', response.data)
+            if (response.data.result) {
+              obj.picBase64 = 'data:image/png;base64,' + response.data.result.data
+              res.status(200).json({
+                result: true,
+                message: '',
+                data: obj
+              })
+              return
+            }
           })
-          return
+          // res.status(200).json({
+          //   result: true,
+          //   message: '',
+          //   data: list[claim_sn] || {}
+          // })
+          // return
         }
       } else {
         return Promise.reject(new Error('请求pvdata出错'))
       }
     }).catch(error => {
+      console.log(error)
       res.status(500).json({
         result: false,
         message: error.message,
