@@ -545,7 +545,7 @@ router.route('/legelPersonQualification')
     res.send('get')
   })
   .post(cors.corsWithOptions,
-   upload.single('businessLicense'),
+   // upload.single('businessLicense'),
    (req, res, next) => {
     let {sign, ocrData, claim_sn, businessLicense, orgName} = req.body
     // 检查参数是否正确
@@ -598,7 +598,7 @@ router.route('/legelPersonQualification')
       return tokenSDKServer.getPvData(didttm.did).then(response => {
         if (response.data.result) {
           let pvdata = JSON.parse(tokenSDKServer.decryptPvData(response.data.result.data, priStr))
-          // console.log('pvdata', pvdata)
+          console.log('pvdata', pvdata)
           if (!pvdata.hasOwnProperty('pendingTask')) {
             return pvdata
           } else {
@@ -630,16 +630,36 @@ router.route('/legelPersonQualification')
     //   })
     // })
     .then(pvdata => {
+    // 保存图片的base64
+      let key = tokenSDKServer.hashKeccak256(businessLicense)
+      fs.writeFileSync(`tokenSDKData/businessLicense/${key}.txt`, businessLicense)
+      return {pvdata, key}
+    })
+    .then((pvdata, picBase64HashStr) => {
     // 备份pvdata
       // console.log('pvdata', pvdata)
       if (!pvdata.hasOwnProperty('pendingTask')) {
         pvdata.pendingTask = {}
       }
+      // console.log('ocrData', ocrData)
+      // console.log(JSON.parse(ocrData))
       let obj = {
         ocrData: JSON.parse(ocrData),
-        picBase64: businessLicense,
+        // picBase64: businessLicense,
+        picBase64: picBase64HashStr,
         isPersonCheck: false,
-        isPdidCheck: false
+        isPdidCheck: false,
+        '注释':req.body['注释'],
+        addressInfo: req.body.addressInfo,
+        applicantBankAccountName: req.body.applicantBankAccountName,
+        applicantBankName: req.body.applicantBankName,
+        applicantBankAccountNumber: req.body.applicantBankAccountNumber,
+        receiveBankName: req.body.receiveBankName,
+        receiveBankAccountName: req.body.receiveBankAccountName,
+        receiveBankAccountNumber: req.body.receiveBankAccountNumber,
+        verificationMoney: req.body.verificationMoney,
+        // claim_sn: req.body.claim_sn,
+        // sign: req.body.sign,
       }
       pvdata.pendingTask[claim_sn] = obj
       let key = '0x' + tokenSDKServer.hashKeccak256(didttm.did)
@@ -656,7 +676,7 @@ router.route('/legelPersonQualification')
 
       // console.log('signStr', signStr)
       return tokenSDKServer.backupData(didttm.did, key, 'pvdata', pvdataCt, signStr).then(response => {
-        console.log(response.data)
+        // console.log(response.data)
         if (response.data.result) {
           return res.status(200).json({
             result: true,
