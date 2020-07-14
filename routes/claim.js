@@ -745,12 +745,55 @@ router.route('/legelPersonQualification')
   })
 
 // 未完成签发的企业认证列表
-router.route('/penddingTask/{claim_sn}')
+router.route('/pendingTask')
   .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
   })
   .get(cors.corsWithOptions, (req, res, next) =>{
-    res.send('get')
+    // let claim_sn = req.params.claim_sn
+    let claim_sn = req.query.claim_sn
+    let {didttm, idpwd} = require('../tokenSDKData/privateConfig.js')
+    let priStr = JSON.parse(tokenSDKServer.decryptDidttm(didttm, idpwd).data).prikey
+    // console.log(priStr)
+    // let priStr = JSON.parse(tokenSDKServer.decryptDidttm(didttm, idpwd)).prikey
+    // console.log('claim_sn', claim_sn)
+    tokenSDKServer.getPvData(didttm.did).then(response => {
+      if (response.data.result) {
+        let pvdata = tokenSDKServer.decryptPvData(response.data.result.data, priStr)
+        pvdata = JSON.parse(pvdata)
+        // console.log(pvdata)
+        let list = pvdata.pendingTask || {}
+        if (!claim_sn) {
+          res.status(200).json({
+            result: true,
+            message: '',
+            data: list
+          })
+        } else {
+          res.status(200).json({
+            result: true,
+            message: '',
+            data: list[claim_sn] || {}
+          })
+        }
+      } else {
+        return Promise.reject(new Error('请求pvdata出错'))
+      }
+    }).catch(error => {
+      res.status(500).json({
+        result: false,
+        message: error.message,
+        error: {}
+      })
+    })
+    // if (!claim_sn) {
+    // } else {
+
+    // }
+    // res.send('get')
+    // tokenSDKServer.getPvData(didttm.did).then(response => {
+    //   console.log(response.data)
+    // })
   })
   .post(cors.corsWithOptions, (req, res, next) => {
     // res.send('post'),
