@@ -537,6 +537,7 @@ router.route('/needSignCertify')
     res.send('delete')
   })
 
+// odid身份认证
 router.route('/legelPersonQualification')
   .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
@@ -547,9 +548,13 @@ router.route('/legelPersonQualification')
   .post(cors.corsWithOptions,
    // upload.single('businessLicense'),
    (req, res, next) => {
-    let {sign, ocrData, claim_sn, businessLicense, orgName} = req.body
-    // 检查参数是否正确
-    if (!sign || !ocrData || !claim_sn || !orgName) {
+    // let {sign, ocrData, claim_sn, businessLicense, orgName} = req.body
+    // let {sign, businessLicenseData: {applicantSuperDid, applicantDid, ocrData, businessLicense, orgName, addressInfo, applicantBankAccountName, applicantBankName, applicantBankAccountNumber, receiveBankName, receiveBankAccountName, receiveBankAccountNumber, verificationMoney, claim_sn}} = req.body
+    let {sign, businessLicenseData} = req.body
+    // console.log(sign, applicantSuperDid, applicantDid, ocrData, businessLicense, orgName, addressInfo)
+    // console.log(sign, businessLicenseData)
+    // // 检查参数是否正确
+    if (!sign || !businessLicenseData.applicantSuperDid || !businessLicenseData.applicantDid || !businessLicenseData.ocrData || !businessLicenseData.businessLicense || !businessLicenseData.orgName || !businessLicenseData.addressInfo || !businessLicenseData.applicantBankAccountName || !businessLicenseData.applicantBankName || !businessLicenseData.applicantBankAccountNumber || !businessLicenseData.receiveBankName || !businessLicenseData.receiveBankAccountName || !businessLicenseData.receiveBankAccountNumber || !businessLicenseData.verificationMoney || !businessLicenseData.claim_sn) {
       res.status(500).json({
         result: false,
         message: '参数不正确',
@@ -559,7 +564,7 @@ router.route('/legelPersonQualification')
     }
     // 验签
     let isok = tokenSDKServer.verify({sign})
-    isok = true
+    // isok = true
     if (!isok) {
       res.status(200).json({
         result: true,
@@ -572,7 +577,7 @@ router.route('/legelPersonQualification')
     let priStr = tokenSDKServer.decryptDidttm(didttm, idpwd)
     priStr = JSON.parse(priStr.data).prikey
     // 检查是否签过
-    tokenSDKServer.getCertifyFingerPrint(claim_sn, true).then(response => {
+    tokenSDKServer.getCertifyFingerPrint(businessLicenseData.claim_sn, true).then(response => {
       return true // 测试用
       if (response.data.result) {
         let sign_list = response.data.result.sign_list
@@ -602,8 +607,8 @@ router.route('/legelPersonQualification')
           if (!pvdata.hasOwnProperty('pendingTask')) {
             return pvdata
           } else {
-            if (pvdata.pendingTask[claim_sn]) {
-              // return 
+            if (pvdata.pendingTask[businessLicenseData.claim_sn]) {
+              // return
               res.status(200).json({
                 result: true,
                 message: '正在等待人工审核或父did签名，请耐心等待。',
@@ -640,42 +645,48 @@ router.route('/legelPersonQualification')
     // .then((pvdata, picBase64HashStr) => {
     .then(pvdata => {
       if (pvdata) {
+    // 备份pvdata
         // console.log('pvdata', pvdata)
-      // 备份pvdata
         // console.log('pvdata', pvdata)
         if (!pvdata.hasOwnProperty('pendingTask')) {
           pvdata.pendingTask = {}
         }
         // console.log('ocrData', ocrData)
         // console.log(JSON.parse(ocrData))
+        // let obj = {
+        //   ocrData: JSON.parse(ocrData),
+        //   picBase64: businessLicense, // businessLicense 是bigdata的key
+        //   // picBase64: picBase64HashStr,
+        //   orgName: orgName,
+        //   isPersonCheck: false,
+        //   isPdidCheck: false,
+        //   '注释':req.body['注释'],
+        //   addressInfo: req.body.addressInfo,
+        //   applicantBankAccountName: req.body.applicantBankAccountName,
+        //   applicantBankName: req.body.applicantBankName,
+        //   applicantBankAccountNumber: req.body.applicantBankAccountNumber,
+        //   receiveBankName: req.body.receiveBankName,
+        //   receiveBankAccountName: req.body.receiveBankAccountName,
+        //   receiveBankAccountNumber: req.body.receiveBankAccountNumber,
+        //   verificationMoney: req.body.verificationMoney,
+        //   // claim_sn: req.body.claim_sn,
+        //   // sign: req.body.sign,
+        // }
         let obj = {
-          ocrData: JSON.parse(ocrData),
-          picBase64: businessLicense, // businessLicense 是bigdata的key
-          // picBase64: picBase64HashStr,
-          orgName: orgName,
           isPersonCheck: false,
           isPdidCheck: false,
-          '注释':req.body['注释'],
-          addressInfo: req.body.addressInfo,
-          applicantBankAccountName: req.body.applicantBankAccountName,
-          applicantBankName: req.body.applicantBankName,
-          applicantBankAccountNumber: req.body.applicantBankAccountNumber,
-          receiveBankName: req.body.receiveBankName,
-          receiveBankAccountName: req.body.receiveBankAccountName,
-          receiveBankAccountNumber: req.body.receiveBankAccountNumber,
-          verificationMoney: req.body.verificationMoney,
-          // claim_sn: req.body.claim_sn,
-          // sign: req.body.sign,
+          businessLicenseData: businessLicenseData,
+          sign: sign
         }
-        pvdata.pendingTask[claim_sn] = obj
+        pvdata.pendingTask[businessLicenseData.claim_sn] = obj
         let key = '0x' + tokenSDKServer.hashKeccak256(didttm.did)
         // console.log('pvdata', pvdata)
         let pvdataCt = tokenSDKServer.encryptPvData(pvdata, priStr)
         // console.log('pvdataCt', pvdataCt)
         let type = 'pvdata'
         let signObj = `update backup file${pvdataCt}for${didttm.did}with${key}type${type}`
-        let sign = tokenSDKServer.sign({keys: priStr, msg: signObj})
-        let signStr = `0x${sign.r.toString('hex')}${sign.s.toString('hex')}00`
+        let signMy = tokenSDKServer.sign({keys: priStr, msg: signObj})
+        let signStr = `0x${signMy.r.toString('hex')}${signMy.s.toString('hex')}00`
         // console.log('pvdataCt.length', pvdataCt.length)
         // let mt = tokenSDKServer.decryptPvData(pvdataCt, priStr)
         // console.log('mt', JSON.parse(mt))
@@ -705,7 +716,7 @@ router.route('/legelPersonQualification')
 
       }
     }).catch(error => {
-      console.log(error)
+      // console.log(error)
       res.status(500).json({
         result: false,
         message: error.message,
@@ -821,12 +832,55 @@ router.route('/pendingTask')
     })
   })
   .post(cors.corsWithOptions, (req, res, next) => {
-    // res.send('post'),
-    // let {}
-    tokenSDKServer.getCertifyUnfinish()
-    // 验签
-    // 保存到pvdata
+    res.send('post')
+  })
+  .put(cors.corsWithOptions, (req, res, next) => {
+    res.send('put')
+  })
+  .delete(cors.corsWithOptions, (req, res, next) => {
+    res.send('delete')
+  })
 
+// 人工审核
+router.route('/personCheck')
+  .options(cors.corsWithOptions, (req, res) => {
+    res.sendStatus(200)
+  })
+  .get(cors.corsWithOptions, (req, res, next) =>{
+    res.send('get')
+  })
+  .post(cors.corsWithOptions, (req, res, next) => {
+    // tokenSDKServer.getCertifyUnfinish()
+    let {operator, claim_sn} = req.body
+    console.log('operator', operator)
+    let {didttm, idpwd} = require('../tokenSDKData/privateConfig.js')
+    let priStr = JSON.parse(tokenSDKServer.decryptDidttm(didttm, idpwd).data).prikey
+    tokenSDKServer.getPvData(didttm.did).then(response => {
+      console.log(response.data)
+      if (response.data.result) {
+        let pvdata = tokenSDKServer.decryptPvData(response.data.result.data, priStr)
+        pvdata = JSON.parse(pvdata)
+        let pendingTask = pvdata.pendingTask || {}
+        let claim = pendingTask[claim_sn]
+        if (claim) {
+          // pvdata.pendingTask[claim_sn]
+          // 需要确定下接口的数据结构后完成该功能
+          res.status(200).json({
+            result: true,
+            message: '',
+            data: ''
+          })
+        } else {
+          return Promise.reject(new Error(`不存在${claim_sn}待完成事项`))
+        }
+      }
+    }).catch(error => {
+      res.status(500).json({
+        result: false,
+        message: error.message,
+        error: error
+      })
+    })
   })
   .put(cors.corsWithOptions, (req, res, next) => {
     res.send('put')
