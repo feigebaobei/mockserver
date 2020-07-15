@@ -16,7 +16,7 @@ router.route('/test')
     res.sendStatus(200)
   })
   .get(cors.corsWithOptions, (req, res, next) =>{
-    let claim_snDel = ['0x5da47e44d19164277876f780b23b035e7442b2fea389ab127647d232ae84d565', '0x127ba19ab02b29582de59055adaaf86e4814e591d3c35be21616e3fd8503d9b6']
+    // let claim_snDel = ['0x5da47e44d19164277876f780b23b035e7442b2fea389ab127647d232ae84d565', '0x127ba19ab02b29582de59055adaaf86e4814e591d3c35be21616e3fd8503d9b6']
 
 
     // 测试解密图片
@@ -38,7 +38,7 @@ router.route('/test')
         // for (let i = 0; i < 2; i++) {
         //   delete pvdata.pendingTask[claim_snDel[i]]
         // }
-        console.log('pvdata', pvdata, pvdata.pendingTask['0xdacb1e1063c5f46195f04f79624dd19c6968a2b7b4e844b646b4c540c5d2a3fa'].businessLicenseData)
+        console.log('pvdata', pvdata)
         // let ct = tokenSDKServer.encryptPvData(pvdata, priStr)
         // console.log('ct', ct)
       } else {
