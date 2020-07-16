@@ -245,6 +245,8 @@ router.route('/cancel')
     res.send('delete')
   })
 
+// 生成海报。
+// 不用了。
 router.route('/genPoster')
   .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
@@ -551,10 +553,11 @@ router.route('/legelPersonQualification')
     // let {sign, ocrData, claim_sn, businessLicense, orgName} = req.body
     // let {sign, businessLicenseData: {applicantSuperDid, applicantDid, ocrData, businessLicense, orgName, addressInfo, applicantBankAccountName, applicantBankName, applicantBankAccountNumber, receiveBankName, receiveBankAccountName, receiveBankAccountNumber, verificationMoney, claim_sn}} = req.body
     let {sign, businessLicenseData} = req.body
-    // console.log(sign, applicantSuperDid, applicantDid, ocrData, businessLicense, orgName, addressInfo)
-    // console.log(sign, businessLicenseData)
+    let pvdata = '',
+        pdidPendingTaskKey = ''
     // // 检查参数是否正确
-    if (!sign || !businessLicenseData.applicantSuperDid || !businessLicenseData.applicantDid || !businessLicenseData.ocrData || !businessLicenseData.businessLicense || !businessLicenseData.orgName || !businessLicenseData.addressInfo || !businessLicenseData.applicantBankAccountName || !businessLicenseData.applicantBankName || !businessLicenseData.applicantBankAccountNumber || !businessLicenseData.receiveBankName || !businessLicenseData.receiveBankAccountName || !businessLicenseData.receiveBankAccountNumber || !businessLicenseData.verificationMoney || !businessLicenseData.claim_sn) {
+    // if (!sign || !businessLicenseData.applicantSuperDid || !businessLicenseData.applicantDid || !businessLicenseData.ocrData || !businessLicenseData.businessLicense || !businessLicenseData.orgName || !businessLicenseData.addressInfo || !businessLicenseData.applicantBankAccountName || !businessLicenseData.applicantBankName || !businessLicenseData.applicantBankAccountNumber || !businessLicenseData.receiveBankName || !businessLicenseData.receiveBankAccountName || !businessLicenseData.receiveBankAccountNumber || !businessLicenseData.verificationMoney || !businessLicenseData.claim_sn) {
+    if (!sign && !businessLicenseData) {
       res.status(500).json({
         result: false,
         message: '参数不正确',
@@ -563,8 +566,8 @@ router.route('/legelPersonQualification')
       return
     }
     // 验签
-    let isok = tokenSDKServer.verify({sign})
-    // isok = true
+    let isok = tokenSDKServer.verify({sign: sign})
+    // console.log('isok', isok)
     if (!isok) {
       res.status(200).json({
         result: true,
@@ -578,9 +581,11 @@ router.route('/legelPersonQualification')
     priStr = JSON.parse(priStr.data).prikey
     // 检查是否签过
     tokenSDKServer.getCertifyFingerPrint(businessLicenseData.claim_sn, true).then(response => {
-      return true // 测试用
+      // return true // 测试用
       if (response.data.result) {
         let sign_list = response.data.result.sign_list
+        // console.log('sign_list', sign_list)
+        // 应该使用did判断是否签名
         let has = sign_list.some((item) => {
           return item.name === didttm.nickname && new Date().getTime() < item.expire
         })
@@ -591,99 +596,136 @@ router.route('/legelPersonQualification')
             message: '不能在签名有效期内重复签名',
             data: ''
           })
-          return
+          return Promise.reject({hasRes: true, error: new Error('请求证书的签名列表失败')})
         } else {
-          return true
+          return false
         }
       } else {
-        return Promise.reject(new Error('请求证书的签名列表失败'))
+        return false
       }
-    }).then(bool => {
+    }).then(bool => { // 没用到bool
     // 检查是否正在签发。
       return tokenSDKServer.getPvData(didttm.did).then(response => {
         if (response.data.result) {
-          let pvdata = JSON.parse(tokenSDKServer.decryptPvData(response.data.result.data, priStr))
+          // let pvdata = JSON.parse(tokenSDKServer.decryptPvData(response.data.result.data, priStr))
+          pvdata = JSON.parse(tokenSDKServer.decryptPvData(response.data.result.data, priStr))
+      // return false // 测试用
           // console.log('pvdata', pvdata)
           if (!pvdata.hasOwnProperty('pendingTask')) {
-            return pvdata
+            return false
           } else {
             if (pvdata.pendingTask[businessLicenseData.claim_sn]) {
-              // return
               res.status(200).json({
                 result: true,
                 message: '正在等待人工审核或父did签名，请耐心等待。',
                 data: ''
               })
-              return false
+              // return true
+              return Promise.reject({hasRes: true})
             } else {
-              return pvdata
+              // return pvdata
+              return false
             }
           }
         }
       })
     })
-    // app端备份图片
-    // .then(pvdata => {
-    // // 备份图片
-    //   let key = '0x' + tokenSDKServer.hashKeccak256(`${didttm.did}with${businessLicense}`)
-    //   let type = 'bigdata'
-    //   let picCt = tokenSDKServer.encryptPvData(businessLicense, priStr)
-    //   let signObj = `update backup file${picCt}for${didttm.did}with${key}type${type}`
-    //   let sign = tokenSDKServer.sign({keys: priStr, msg: signObj})
-    //   let signStr = `0x${sign.r.toString('hex')}${sign.s.toString('hex')}00`
-    //   return tokenSDKServer.backupData(didttm.did, key, type, picCt, signStr).then(response => {
-    //     console.log(response.data)
-    //   })
-    // })
-    // .then(pvdata => {
-    // // 保存图片的base64
-    //   // businessLicense 是无前缀的base64
-    //   let key = tokenSDKServer.hashKeccak256(businessLicense)
-    //   fs.writeFileSync(`tokenSDKData/businessLicense/${key}.txt`, businessLicense)
-    //   return {pvdata, key}
-    // })
-    // .then((pvdata, picBase64HashStr) => {
-    .then(pvdata => {
-      if (pvdata) {
-    // 备份pvdata
-        if (!pvdata.hasOwnProperty('pendingTask')) {
-          pvdata.pendingTask = {}
-        }
-        let obj = {
-          isPersonCheck: false,
-          isPdidCheck: false,
-          businessLicenseData: businessLicenseData,
-          sign: sign
-        }
-        pvdata.pendingTask[businessLicenseData.claim_sn] = obj
-        let key = '0x' + tokenSDKServer.hashKeccak256(didttm.did)
-        // console.log('pvdata', pvdata)
-        let pvdataCt = tokenSDKServer.encryptPvData(pvdata, priStr)
-        // console.log('pvdataCt', pvdataCt)
-        let type = 'pvdata'
-        let signObj = `update backup file${pvdataCt}for${didttm.did}with${key}type${type}`
-        let signMy = tokenSDKServer.sign({keys: priStr, msg: signObj})
-        let signStr = `0x${signMy.r.toString('hex')}${signMy.s.toString('hex')}00`
-        return tokenSDKServer.backupData(didttm.did, key, 'pvdata', pvdataCt, signStr).then(response => {
-          // console.log(response.data)
+    .then(bool => {
+      // console.log('bool', bool)
+    // 通知父did
+    // 备份父did的待办事项
+      // if (!bool) {
+        let d = new Date()
+        let expire = d.setFullYear(2120)
+        let certifyData = JSON.stringify(req.body)
+        let signData = tokenSDKServer.sign({keys: priStr, msg: `did=${didttm.did},claim_sn=${businessLicenseData.claim_sn},certifyData=${certifyData},expire=${expire}`})
+        let signStr = `0x${signData.r.toString('hex')}${signData.s.toString('hex')}${String(signData.v).length >= 2 ? String(signData.v) : '0'+String(signData.v)}`
+        return tokenSDKServer.setTemporaryCertifyData(didttm.did, businessLicenseData.claim_sn, certifyData, expire, signStr).then(response => {
+          // console.log('备份父did的待办事项 response.data', response.data)
           if (response.data.result) {
-            return res.status(200).json({
-              result: true,
-              message: '成功接收请求，请耐心等待。',
-              data: ''
-            })
+            return response.data.result
+            // return true
           } else {
-            return Promise.reject(new Error('服务端备份pvdata失败'))
+            return Promise.reject(new Error('通知父did失败'))
           }
         })
-      }
-    }).catch(error => {
-      // console.log(error)
-      res.status(500).json({
-        result: false,
-        message: error.message,
-        error: {}
+      // } else {
+      //   return
+      // }
+    })
+    .then(temporaryId => {
+      // console.log('temporaryId', temporaryId)
+    // 拉取以前的待办列表
+      pdidPendingTaskKey = '0x' + tokenSDKServer.hashKeccak256(`${businessLicenseData.applicantSuperDid}go to check businessLicense`)
+      let list = []
+      return tokenSDKServer.pullData(pdidPendingTaskKey, false).then(response => {
+        if (response.data.result) { // 以前有待办列表
+          list = JSON.parse(response.data.result.data)
+        }
+    // 在待办列表添加待办项
+        let pendingItem = {
+          type: 'sign',
+          content: temporaryId,
+          createTime: String(new Date().getTime())
+        }
+        list.push(pendingItem)
+        list = JSON.stringify(list)
+        let type = 'bigdata'
+        let signData = tokenSDKServer.sign({keys: priStr, msg: `update backup file${list}for${didttm.did}with${pdidPendingTaskKey}type${type}`})
+        let signStr = `0x${signData.r.toString('hex')}${signData.s.toString('hex')}${String(signData.v).length >= 2 ? String(signData.v) : '0'+String(signData.v)}`
+        return tokenSDKServer.backupData(didttm.did, pdidPendingTaskKey, type, list, signStr).then(response => {
+          // console.log('备份父did的待办事项 list', response.data)
+          if (response.data.result) {
+            return pendingItem
+          } else {
+            return Promise.reject(new Error('创建父did待办任务列表时出错'))
+          }
+        })
       })
+    })
+    .then(pendingItem => {
+      // console.log('pendingItem', pendingItem)
+    // 备份父did的待办事项列表
+      if (!pvdata.pendingTask) {
+        pvdata.pendingTask = {}
+      }
+      pvdata.pendingTask[businessLicenseData.claim_sn] = {
+        isPersonCheck: false,
+        isPdidCheck: false,
+        businessLicenseData: businessLicenseData,
+        sign: sign,
+        temporaryId: pendingItem.content,
+        createTime: pendingItem.createTime
+      }
+      let pvdataCt = tokenSDKServer.encryptPvData(pvdata, priStr)
+      // console.log('pvdataCt', pvdataCt)
+      let key = '0x' + tokenSDKServer.hashKeccak256(didttm.did)
+      let type = 'pvdata'
+      let signObj = `update backup file${pvdataCt}for${didttm.did}with${key}type${type}`
+      let signData = tokenSDKServer.sign({keys: priStr, msg: signObj})
+      let signStr = `0x${signData.r.toString('hex')}${signData.s.toString('hex')}${String(signData.v).length >= 2 ? String(signData.v) : '0'+String(signData.v)}`
+      return tokenSDKServer.backupData(didttm.did, key, type, pvdataCt, signStr).then(response => {
+        if (response.data.result) {
+          res.status(200).json({
+            result: true,
+            message: '成功接收请求，请耐心等待。',
+            data: ''
+          })
+          return Promise.reject({hasRes: true})
+        } else {
+          return Promise.reject(new Error('服务端备份pvdata失败'))
+        }
+      })
+    })
+    .catch(errorObj => {
+      // console.log(errorObj)
+      if (!errorObj.hasRes) {
+        res.status(500).json({
+          result: false,
+          message: errorObj.error.message,
+          error: errorObj.error
+        })
+      }
     })
   })
   .put(cors.corsWithOptions, (req, res, next) => {
@@ -782,7 +824,8 @@ router.route('/personCheck')
           let type = 'pvdata'
           let signObj = `update backup file${pvdataCt}for${didttm.did}with${key}type${type}`
           let signMy = tokenSDKServer.sign({keys: priStr, msg: signObj})
-          let signStr = `0x${signMy.r.toString('hex')}${signMy.s.toString('hex')}00`
+          // let signStr = `0x${signMy.r.toString('hex')}${signMy.s.toString('hex')}00`
+          let signStr = `0x${signData.r.toString('hex')}${signData.s.toString('hex')}${String(signData.v).length >= 2 ? String(signData.v) : '0'+String(signData.v)}`
           return tokenSDKServer.backupData(didttm.did, key, type, pvdataCt, signStr).then(response => {
             if (response.data.result) {
               return res.status(200).json({
