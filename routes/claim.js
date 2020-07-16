@@ -646,7 +646,7 @@ router.route('/legelPersonQualification')
             return response.data.result
             // return true
           } else {
-            return Promise.reject(new Error('通知父did失败'))
+            return Promise.reject({hasRes: false, error: new Error('通知父did失败')})
           }
         })
       // } else {
@@ -678,7 +678,7 @@ router.route('/legelPersonQualification')
           if (response.data.result) {
             return pendingItem
           } else {
-            return Promise.reject(new Error('创建父did待办任务列表时出错'))
+            return Promise.reject({hasRes: false, new Error('创建父did待办任务列表时出错')})
           }
         })
       })
@@ -713,7 +713,7 @@ router.route('/legelPersonQualification')
           })
           return Promise.reject({hasRes: true})
         } else {
-          return Promise.reject(new Error('服务端备份pvdata失败'))
+          return Promise.reject({hasRes: false, new Error('服务端备份pvdata失败')})
         }
       })
     })
