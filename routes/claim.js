@@ -814,9 +814,10 @@ router.route('/personCheck')
     let {operator, claim_sn} = req.body
     let {didttm, idpwd} = require('../tokenSDKData/privateConfig.js')
     let priStr = JSON.parse(tokenSDKServer.decryptDidttm(didttm, idpwd).data).prikey
+    let pvdata = {}
     tokenSDKServer.getPvData(didttm.did).then(response => {
       if (response.data.result) {
-        let pvdata = tokenSDKServer.decryptPvData(response.data.result.data, priStr)
+        pvdata = tokenSDKServer.decryptPvData(response.data.result.data, priStr)
         pvdata = JSON.parse(pvdata)
         let pendingTask = pvdata.pendingTask || {}
         let claim = pendingTask[claim_sn]
@@ -831,11 +832,12 @@ router.route('/personCheck')
           let signStr = `0x${signData.r.toString('hex')}${signData.s.toString('hex')}${String(signData.v).length >= 2 ? String(signData.v) : '0'+String(signData.v)}`
           return tokenSDKServer.backupData(didttm.did, key, type, pvdataCt, signStr).then(response => {
             if (response.data.result) {
-              return res.status(200).json({
-                result: true,
-                message: '成功操作',
-                data: operator
-              })
+              // return res.status(200).json({
+              //   result: true,
+              //   message: '成功操作',
+              //   data: operator
+              // })
+              return true
             } else {
               return Promise.reject(new Error('服务端备份pvdata失败'))
             }
@@ -844,7 +846,27 @@ router.route('/personCheck')
           return Promise.reject(new Error(`不存在${claim_sn}待完成事项`))
         }
       }
-    }).catch(error => {
+    })
+    .then(bool => {
+      let pendingTask = pvdata.pendingTask
+      // 当前要处理的任务列表 pendingTask
+      utils.opPendingTask(pendingTask[claim_sn]).then(response => {
+        if (response.status) {
+          res.status(200).json({
+            result: true,
+            message: '',
+            data: ''
+          })
+        } else {
+          res.status(500).json({
+            result: false,
+            message: 'adid签名失败',
+            error: ''
+          })
+        }
+      })
+    })
+    .catch(error => {
       res.status(500).json({
         result: false,
         message: error.message,
