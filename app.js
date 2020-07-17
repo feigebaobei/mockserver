@@ -15,6 +15,7 @@ var didRouter = require('./routes/did');
 var claimRouter = require('./routes/claim');
 var privateRouter = require('./routes/private');
 var testRouter = require('./routes/test');
+var schedule = require('./schedule.js')
 
 var app = express();
 

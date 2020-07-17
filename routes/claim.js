@@ -678,7 +678,7 @@ router.route('/legelPersonQualification')
           if (response.data.result) {
             return pendingItem
           } else {
-            return Promise.reject({hasRes: false, new Error('创建父did待办任务列表时出错')})
+            return Promise.reject({hasRes: false, error: new Error('创建父did待办任务列表时出错')})
           }
         })
       })
@@ -713,7 +713,7 @@ router.route('/legelPersonQualification')
           })
           return Promise.reject({hasRes: true})
         } else {
-          return Promise.reject({hasRes: false, new Error('服务端备份pvdata失败')})
+          return Promise.reject({hasRes: false, error: new Error('服务端备份pvdata失败')})
         }
       })
     })
