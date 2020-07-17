@@ -24,6 +24,6 @@
     "multer": "^1.4.2",
     "node-schedule": "^1.3.2",
     "session-file-store": "^1.4.0",
-    "token-sdk-server": "0.0.8"
+    "token-sdk-server": "0.0.9"
   }
 }
