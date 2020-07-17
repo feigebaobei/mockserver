@@ -587,7 +587,8 @@ router.route('/legelPersonQualification')
         // console.log('sign_list', sign_list)
         // 应该使用did判断是否签名
         let has = sign_list.some((item) => {
-          return item.name === didttm.nickname && new Date().getTime() < item.expire
+          // return item.name === didttm.nickname && new Date().getTime() < item.expire
+          return item.did === didttm.did && new Date().getTime() < item.expire
         })
         if (has) {
           // return Promise.reject(new Error('不能在签名有效期内重复签名'))
@@ -655,7 +656,7 @@ router.route('/legelPersonQualification')
     })
     .then(temporaryId => {
       // console.log('temporaryId', temporaryId)
-    // 拉取以前的待办列表
+    // 拉取父did以前的待办列表
       pdidPendingTaskKey = '0x' + tokenSDKServer.hashKeccak256(`${businessLicenseData.applicantSuperDid}go to check businessLicense`)
       let list = []
       return tokenSDKServer.pullData(pdidPendingTaskKey, false).then(response => {
@@ -692,6 +693,8 @@ router.route('/legelPersonQualification')
       pvdata.pendingTask[businessLicenseData.claim_sn] = {
         isPersonCheck: false,
         isPdidCheck: false,
+        // isPersonCheck: true,
+        // isPdidCheck: false,
         businessLicenseData: businessLicenseData,
         sign: sign,
         temporaryId: pendingItem.content,
