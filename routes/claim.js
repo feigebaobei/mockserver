@@ -763,12 +763,13 @@ router.route('/pendingTask')
         } else {
           let obj = list[claim_sn]
           if (!obj) {
-            return Promise.reject(new Error('待办事项中无此证书'))
+            // return Promise.reject(new Error('待办事项中无此证书'))
+            return Promise.reject({status: true, payload: new Error('待办事项中无此证书')})
           } else {
-            let picKey = list[claim_sn].businessLicenseData.businessLicense
+            let picKey = list[claim_sn].businessLicenseData.ocrData.businessLicense
             return tokenSDKServer.pullData(picKey, false).then(response => {
               if (response.data.result) {
-                obj.businessLicenseData.picBase64 = 'data:image/png;base64,' + response.data.result.data
+                obj.businessLicenseData.ocrData.picBase64 = 'data:image/png;base64,' + response.data.result.data
                 res.status(200).json({
                   result: true,
                   message: '',
@@ -780,15 +781,23 @@ router.route('/pendingTask')
           }
         }
       } else {
-        return Promise.reject(new Error('请求pvdata出错'))
+        return Promise.reject({status: true, payload: new Error('请求pvdata出错')})
       }
-    }).catch(error => {
-      console.log(error)
-      res.status(500).json({
-        result: false,
-        message: error.message,
-        error: {}
-      })
+    }).catch(errorObj => {
+      if (errorObj.status) {
+        res.status(200).json({
+          result: true,
+          message: errorObj.payload.message,
+          data: errorObj.payload
+        })
+      } else {
+        res.status(500).json({
+          result: false,
+          message: errorObj.payload.message,
+          error: errorObj.payload
+        })
+      }
+      // console.log(error)
       return
     })
   })
@@ -827,7 +836,7 @@ router.route('/personCheck')
           let key = '0x' + tokenSDKServer.hashKeccak256(didttm.did)
           let type = 'pvdata'
           let signObj = `update backup file${pvdataCt}for${didttm.did}with${key}type${type}`
-          let signMy = tokenSDKServer.sign({keys: priStr, msg: signObj})
+          let signData = tokenSDKServer.sign({keys: priStr, msg: signObj})
           // let signStr = `0x${signMy.r.toString('hex')}${signMy.s.toString('hex')}00`
           let signStr = `0x${signData.r.toString('hex')}${signData.s.toString('hex')}${String(signData.v).length >= 2 ? String(signData.v) : '0'+String(signData.v)}`
           return tokenSDKServer.backupData(didttm.did, key, type, pvdataCt, signStr).then(response => {
@@ -851,17 +860,18 @@ router.route('/personCheck')
       let pendingTask = pvdata.pendingTask
       // 当前要处理的任务列表 pendingTask
       utils.opPendingTask(pendingTask[claim_sn]).then(response => {
+        // console.log(response)
         if (response.status) {
           res.status(200).json({
             result: true,
-            message: '',
+            message: 'adid签名成功',
             data: ''
           })
         } else {
           res.status(500).json({
             result: false,
-            message: 'adid签名失败',
-            error: ''
+            message: `adid签名失败。原因：${response.payload.message}`,
+            error: response.payload
           })
         }
       })

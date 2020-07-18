@@ -24,7 +24,10 @@ router.route('/test')
   })
   .get(cors.corsWithOptions, (req, res, next) =>{
     // 开发pdid的任务列表
-    let key = '0x' + tokenSDKServer.hashKeccak256(`${opRes.item.businessLicenseData.claim_sn}go to check businessLicense`)
+    let did = 'did:ttm:u05d41330c253b46bd79983c019f9f93477eda305b0f618b7c57401748bde2'
+    // let key = '0x' + tokenSDKServer.hashKeccak256(`${opRes.item.businessLicenseData.claim_sn}go to check businessLicense`)
+    let key = '0x' + tokenSDKServer.hashKeccak256(`${did}go to check businessLicense`)
+    console.log('key', key)
     tokenSDKServer.pullData(key, false).then(response => {
       console.log(response.data)
     })
@@ -269,7 +272,8 @@ router.route('/pdidPendingTask')
   .get(cors.corsWithOptions, (req, res, next) =>{
     // res.send('get')
     // 测试备份父did的待办事项 list
-    let key = '0x' + tokenSDKServer.hashKeccak256(`did:ttm:u011b80743b5fa85ade3a5696eef660b2bae1ba4ba2b84938f26f024cf3fcdgo to check businessLicense`)
+    let did = 'did:ttm:u05d41330c253b46bd79983c019f9f93477eda305b0f618b7c57401748bde2'
+    let key = '0x' + tokenSDKServer.hashKeccak256(`${did}go to check businessLicense`)
     tokenSDKServer.pullData(key, false).then(response => {
       console.log(response.data)
       res.status(200).json({
