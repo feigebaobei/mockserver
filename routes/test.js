@@ -266,7 +266,7 @@ router.route('/getPvdata')
   })
 
 // 父did的任务列表
-router.route('/pdidPendingTask')
+router.route('/didPendingTask')
   .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
   })
@@ -295,15 +295,16 @@ router.route('/pdidPendingTask')
     })
   })
   .post(cors.corsWithOptions, (req, res, next) => {
-    // let pdid = req.body.pdid
-    let pdid = 'did:ttm:u011b80743b5fa85ade3a5696eef660b2bae1ba4ba2b84938f26f024cf3fcd'
-    pdid = 'did:ttm:u05d41330c253b46bd79983c019f9f93477eda305b0f618b7c57401748bde2'
-    pdid = 'did:ttm:u011b80743b5fa85ade3a5696eef660b2bae1ba4ba2b84938f26f024cf3fcd'
+    // let did = req.body.did
+    // let did = 'did:ttm:u011b80743b5fa85ade3a5696eef660b2bae1ba4ba2b84938f26f024cf3fcd'
+    // did = 'did:ttm:u05d41330c253b46bd79983c019f9f93477eda305b0f618b7c57401748bde2'
+    // did = 'did:ttm:u011b80743b5fa85ade3a5696eef660b2bae1ba4ba2b84938f26f024cf3fcd'
+    let {did} = req.body
     // res.send('post')
     let {didttm, idpwd} = require('../tokenSDKData/privateConfig.js')//.didttm.did
     let priStr = tokenSDKServer.decryptDidttm(didttm, idpwd)
     priStr = JSON.parse(priStr.data).prikey
-    let pdidPendingTaskKey = '0x' + tokenSDKServer.hashKeccak256(`${pdid}go to check businessLicense`)
+    let pdidPendingTaskKey = '0x' + tokenSDKServer.hashKeccak256(`${did}go to check businessLicense`)
     let type = 'bigdata'
     let list = []
     list = JSON.stringify(list)

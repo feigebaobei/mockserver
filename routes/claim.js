@@ -868,7 +868,7 @@ router.route('/personCheck')
         } else {
           res.status(500).json({
             result: false,
-            message: `adid签名失败。原因：${response.payload.message}`,
+            message: `adid签名失败。原因：${response.payload.message || ''}`,
             error: response.payload
           })
         }
