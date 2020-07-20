@@ -858,7 +858,7 @@ router.route('/personCheck')
       let pendingTask = pvdata.pendingTask
       // 当前要处理的任务列表 pendingTask
       utils.opPendingTask(pendingTask[claim_sn]).then(response => {
-        // console.log(response)
+        console.log(response)
         if (response.status) {
           res.status(200).json({
             result: true,
