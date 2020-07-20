@@ -271,9 +271,11 @@ router.route('/pdidPendingTask')
     res.sendStatus(200)
   })
   .get(cors.corsWithOptions, (req, res, next) =>{
+    let {did} = req.query
     // res.send('get')
     // 测试备份父did的待办事项 list
-    let did = 'did:ttm:u05d41330c253b46bd79983c019f9f93477eda305b0f618b7c57401748bde2'
+    // let did = 'did:ttm:u05d41330c253b46bd79983c019f9f93477eda305b0f618b7c57401748bde2'
+    // did = 'did:ttm:u011b80743b5fa85ade3a5696eef660b2bae1ba4ba2b84938f26f024cf3fcd'
     let key = '0x' + tokenSDKServer.hashKeccak256(`${did}go to check businessLicense`)
     tokenSDKServer.pullData(key, false).then(response => {
       console.log(response.data)
@@ -296,6 +298,7 @@ router.route('/pdidPendingTask')
     // let pdid = req.body.pdid
     let pdid = 'did:ttm:u011b80743b5fa85ade3a5696eef660b2bae1ba4ba2b84938f26f024cf3fcd'
     pdid = 'did:ttm:u05d41330c253b46bd79983c019f9f93477eda305b0f618b7c57401748bde2'
+    pdid = 'did:ttm:u011b80743b5fa85ade3a5696eef660b2bae1ba4ba2b84938f26f024cf3fcd'
     // res.send('post')
     let {didttm, idpwd} = require('../tokenSDKData/privateConfig.js')//.didttm.did
     let priStr = tokenSDKServer.decryptDidttm(didttm, idpwd)
