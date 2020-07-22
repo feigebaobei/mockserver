@@ -6,6 +6,8 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 // var session = require('express-session');
 // var FileStore = require('session-file-store')(session)
+var redis = require('redis')
+var config = require('./lib/config')
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -16,6 +18,27 @@ var claimRouter = require('./routes/claim');
 var privateRouter = require('./routes/private');
 var testRouter = require('./routes/test');
 var schedule = require('./schedule.js')
+var webSocket = require('./routes/webSocket.js')
+
+// 连接数据库
+// let red_config = config.redis,
+//     RED_HOST = red_config.host,
+//     RED_PWD = red_config.pass,
+//     RED_PORT = red_config.port,
+//     RED_OPTS = {auth_pass: RED_PWD},
+//     client = redis.createClient(RED_PORT, RED_HOST, RED_OPTS)
+// client.on('ready', (res) => {
+//   console.log('ready')
+// })
+// client.on('end', (res) => {
+//   console.log('end')
+// })
+// client.on('error', (error) => {
+//   console.log('error', error)
+// })
+// client.on('connect', (res) => {
+//   console.log('connect')
+// })
 
 var app = express();
 
