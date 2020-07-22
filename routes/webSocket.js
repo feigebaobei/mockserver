@@ -17,7 +17,7 @@ const WebSocketServer = require('ws').Server,
     // host: '47.94.105.206',
     // host: '172.25.0.51',
     // server: 'lixiaodan.org',
-    port: config.webSocket.port || 9870
+    port: config.webSocket.port || 9875
   })
 // console.log('wss', wss)
 wss.on('connection', (ws) => {
