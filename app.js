@@ -18,7 +18,7 @@ var claimRouter = require('./routes/claim');
 var privateRouter = require('./routes/private');
 var testRouter = require('./routes/test');
 var schedule = require('./schedule.js')
-var webSocket = require('./routes/webSocket.js')
+var webSocket = require('./webSocket.js')
 
 // 连接数据库
 // let red_config = config.redis,
