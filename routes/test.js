@@ -5,30 +5,10 @@ var cors = require('./cors')
 var tokenSDKServer = require('token-sdk-server')
 var fs = require('fs')
 const Base64 = require('js-base64').Base64
-var redis = require('redis')
-var config = require('../lib/config')
 var bodyParse = require('body-parser')
+const redisClient = require('../redisClient.js')
 
 router.use(bodyParse.json())
-let red_config = config.redis,
-    RED_HOST = red_config.host,
-    RED_PWD = red_config.pass,
-    RED_PORT = red_config.port,
-    RED_OPTS = {auth_pass: RED_PWD},
-    client = redis.createClient(RED_PORT, RED_HOST, RED_OPTS)
-client.on('ready', (res) => {
-  console.log('ready')
-})
-client.on('end', (res) => {
-  console.log('end')
-})
-client.on('error', (error) => {
-  console.log('error', error)
-})
-client.on('connect', (res) => {
-  console.log('connect')
-})
-
 
 // var session = require('express-session');
 // var FileStore = require('session-file-store')(session)
@@ -363,7 +343,7 @@ router.route('/redis')
   })
   .get(cors.corsWithOptions, (req, res, next) =>{
     let {key} = req.query
-    client.get(key, (err, resObj) => {
+    redisClient.get(key, (err, resObj) => {
       if (err) {
         res.status(500).json({
           result: false,
@@ -381,8 +361,8 @@ router.route('/redis')
   })
   .post(cors.corsWithOptions, (req, res, next) => {
     let {key, value} = req.body
-    console
-    client.set(key, value, (err, resObj) => {
+    // console
+    redisClient.set(key, value, (err, resObj) => {
       if (err) {
         res.status(500).json({
           result: false,

@@ -5,9 +5,9 @@ var cors = require('./cors')
 var tokenSDKServer = require('token-sdk-server')
 var fs = require('fs')
 const Base64 = require('js-base64').Base64
-var redis = require('redis')
 var config = require('../lib/config')
 var bodyParse = require('body-parser')
+const redisClient = require('../redisClient.js')
 
 const WebSocketServer = require('ws').Server,
   wss = new WebSocketServer({
@@ -23,11 +23,27 @@ const WebSocketServer = require('ws').Server,
 wss.on('connection', (ws) => {
   // 参数ws是一个websocket的实例
   // console.log('服务端：客户端已经连接', ws)
-  console.log('服务端：客户端已经连接')
+  console.log('服务端：', ws, ws.upgradeReq)
   ws.on('message', (message) => {
     console.log(message)
-    ws.send(`receive: ${message}`)
+    let key = 'qwer1234'
+    redisClient.set(key, message, (err, resObj) => {
+      if (err) {
+        ws.send(`${JSON.stringify(err)}`)
+      } else {
+        redisClient.get(key, (err, resObj) => {
+          if (err) {
+            ws.send('取出数据时出错了')
+          } else {
+            ws.send(`从redis里取出的数据：${resObj}`)
+          }
+        })
+        // ws.send('')
+      }
+    })
+    // ws.send(`receive: ${message}`)
   })
+
 })
 
 // const WebSocket = require('ws')
