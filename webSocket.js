@@ -87,10 +87,26 @@ let popUpMsg = (dids) => {
   let clients = [...wss.clients]
   let onlineClient = clients.filter(item => dids.some(subItem => subItem === item.did))
   // 为每一个在线在did发送消息
+  // console.log('在线的did', onlineClient.reduce((resObj, cur) => {
+  //   resObj.push(cur.did)
+  //   return resObj
+  // }, []))
   onlineClient.map(item => {
     getMsgList(item.did).then(response => {
-      item.send(JSON.stringify(response))
+      // 若key存在则返回key对应的value。value是数组。
+      // 若key不存在则返回[]。
+      // 即response总是数组。
+      // console.log('发出的消息 response', response)
+      let arr = response.reduce((resObj, cur, index) => {
+        cur = JSON.parse(cur)
+        cur.messageId = index
+        resObj.push(cur)
+        return resObj
+      }, [])
+      // console.log('发出的消息', item.did, arr)
+      item.send(JSON.stringify(arr))
     }).catch(error => {
+      // console.log('发出的消息', error)
       item.send(JSON.stringify(error))
     })
   })
@@ -111,31 +127,40 @@ let delMsgIndex = (key, index) => {
   })
 }
 // 删除key
-let delKey = (key) => {
-  return new Promise((resolve, reject) => {
-    redisClient.del(key, (err, resObj) => {
-      err ? reject(err) : resolve(resObj)
-    })
-  })
-}
+// let delKey = (key) => {
+//   return new Promise((resolve, reject) => {
+//     redisClient.del(key, (err, resObj) => {
+//       err ? reject(err) : resolve(resObj)
+//     })
+//   })
+// }
 // 删除消息
 let delMsg = (key, msgIds) => {
   msgIds = [...new Set(msgIds)]
-  let clients = [...wss.clients]
-  let pArr = msgIds.reduce((resObj, item) => {
-    resObj.push(delMsgIndex(key, item))
-    return resObj
-  }, [])
-  return Promise.all(pArr).then(() => {
-    return getMsgList(key).then(response => {
-      if (response.length) {
-        return delKey(key)
-      }
-    })
-  })
-  .catch(error => {
-    return error
-  })
+  // console.log('删除消息', key, msgIds)
+  if (msgIds.length) {
+    let clients = [...wss.clients]
+    let pArr = msgIds.reduce((resObj, item) => {
+      resObj.push(delMsgIndex(key, item))
+      return resObj
+    }, [])
+    return Promise.all(pArr)
+    // .then((response) => {
+    //   console.log('response1',  response)
+    //   return getMsgList(key)
+    //   .then(response => {
+    //     console.log('response2', response)
+    //     if (!response.length) {
+    //       return delKey(key)
+    //     }
+    //   })
+    // })
+    // .catch(error => {
+    //   return error
+    // })
+  } else {
+    // 无操作
+  }
 }
 
 wss.on('connection', (ws, req) => {
@@ -156,13 +181,14 @@ wss.on('connection', (ws, req) => {
   popUpMsg([ws.did])
   ws.on('message', (message) => {
     let infoObj = JSON.parse(message)
-    // console.log(infoObj)
+    // let infoObj = message
+    // console.log('infoObj', infoObj)
     switch (infoObj.type) {
       case 'message':
         if (!infoObj.receiver.length) {
           ws.send('receiver is empty')
         } else {
-          pressInMsg(infoObj.receiver, JSON.stringify(infoObj.content))
+          pressInMsg(infoObj.receiver, JSON.stringify(infoObj))
           // .then(response => {
           //   console.log('response', response)
           //   // ws.send(JSON.stringify(response))
