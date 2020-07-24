@@ -343,7 +343,10 @@ router.route('/redis')
   })
   .get(cors.corsWithOptions, (req, res, next) =>{
     let {key} = req.query
-    redisClient.get(key, (err, resObj) => {
+    // redisClient.get(key, (err, resObj) => {
+    //   let len = redisClient.llen(key)
+    // console.log('LLEN key', len)
+    redisClient.lrange(key, 0, -1, (err, resObj) => {
       if (err) {
         res.status(500).json({
           result: false,
@@ -362,7 +365,8 @@ router.route('/redis')
   .post(cors.corsWithOptions, (req, res, next) => {
     let {key, value} = req.body
     // console
-    redisClient.set(key, value, (err, resObj) => {
+    // redisClient.set(key, value, (err, resObj) => {
+    redisClient.lpush(key, value, (err, resObj) => {
       if (err) {
         res.status(500).json({
           result: false,
@@ -382,8 +386,58 @@ router.route('/redis')
     res.send('put')
   })
   .delete(cors.corsWithOptions, (req, res, next) => {
-    res.send('delete')
-  })
+    // 删除消息list中的指定下标的元素
+    let delMsgIndex = (key, index) => {
+      // return new Promise((resolve, reject) => {
+      //   redisClient.lset(key, index, '$$value$$', (err, resObj) => {
+      //     if (err) {
+      //       reject(err)
+      //     } else {
+      //       redisClient.lrem(key, 0, '$$value$$', (err, resObj) => {
+      //         err ? reject(err) : resolve(resObj)
+      //       })
+      //     }
+      //   })
+      // })
+      // LINDEX key index
+      return new Promise((resolve, reject) => {
+        redisClient.lindex(key, index, (err, resObj) => {
+          if (err) {
+            reject(err)
+          } else {
+            console.log('resObj', resObj)
+            redisClient.lrem(key, index, resObj, (err, resObj) => {
+              err ? reject(err) : resolve(resObj)
+            })
+          }
+        })
+      })
+    }
+    // res.send('delete')
+    let {key} = req.body
+    console.log(key)
+    // redisClient.del(key, (err, resObj) => {
+    //   // console.log(err, resObj)
+    //   res.status(200).json({
+    //     result: true,
+    //     message: '',
+    //     data: resObj
+    //   })
+    // })
+    delMsgIndex(key, 0).then(response => {
+      res.status(200).json({
+        result: true,
+        message: '',
+        data: response
+      })
+    }).catch(error => {
+      res.status(200).json({
+        result: true,
+        message: '',
+        data: error
+      })
+    })
+   })
 
 
 module.exports = router;

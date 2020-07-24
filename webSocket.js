@@ -3,11 +3,19 @@
 // var tokenSDKServer = require('token-sdk-server')
 var config = require('./lib/config')
 const redisClient = require('./redisClient.js')
+// const http = require('http')
+// const WebSocket = require('ws')
+// const server = http.createServer()
+// const wss2 = new WebSocket.Server({noServer: true})
 
 const WebSocketServer = require('ws').Server,
   wss = new WebSocketServer({
     port: config.webSocket.port
   })
+  // ,
+  // wss2 = new WebSocketServer({
+  //   noServer: true
+  // })
 
 // 广播
 wss.broadcast = (data) => {
@@ -16,8 +24,15 @@ wss.broadcast = (data) => {
   })
 }
 // 创建消息
-let messageIndex = 0
-let createMessage = (type, user, data) => JSON.stringify({id: messageIndex++, type: type, user: user, data: data})
+let createMessage = (content = '', type = 'message', messageId = [], createTime = new Date().getTime(), receiver = []) => {
+  return JSON.stringify({
+    type: type,
+    content: content,
+    messageId: messageId,
+    createTime: createTime,
+    receiver: receiver
+  })
+}
 // 保持同一did只有一个client
 let onlyOneOnline = (did, wss, ws) => {
   ws.did = did
@@ -34,34 +49,33 @@ let onlyOneOnline = (did, wss, ws) => {
   }
   // console.log('ws.clients', wss.clients.size)
 }
+// 设置消息列表
+let setMsgList = (key, value) => {
+  return new Promise((resolve, reject) => {
+    redisClient.rpush(key, value, (err, resObj) => {
+      err ? reject(err) : resolve(resObj)
+    })
+  })
+}
 // 压入消息
 let pressInMsg = (dids, msg) => {
   dids = [...new Set(dids)]
   let clients = [...wss.clients]
   let pArr = dids.reduce((resObj, item) => {
-    let p = new Promise((resolve, reject) => redisClient.set(item, msg, (err, resObj) => err ? reject(err) : resolve(resObj)))
+    let p = setMsgList(item, msg)
     resObj.push(p)
     return resObj
   }, [])
   return Promise.all(pArr)
 }
-// 设置消息列表
-let setMsgList = (key, value) => {
-  return new Promise((resolve, reject) => {
-    redisClient.set(key, value, (err, resObj) => {
-      err ? reject(err) : resolve(resObj)
-    })
-  })
-}
 // 从redis里取出消息列表
 let getMsgList = (key) => {
   return new Promise((resolve, reject) => {
-    redisClient.get(key, (err, resObj) => {
+    redisClient.lrange(key, 0, -1, (err, resObj) => {
       err ? reject(err) : resolve(resObj)
     })
   })
 }
-let delMsg = (key) => {}
 /**
  * 弹出消息
  * @param  {array} dids [接收者did组成的数组]
@@ -70,17 +84,57 @@ let delMsg = (key) => {}
 let popUpMsg = (dids) => {
   // dids去重
   dids = [...new Set(dids)]
-  // console.log()
   let clients = [...wss.clients]
   let onlineClient = clients.filter(item => dids.some(subItem => subItem === item.did))
   // 为每一个在线在did发送消息
   onlineClient.map(item => {
     getMsgList(item.did).then(response => {
-      // console.log(response)
-      item.send(response)
+      item.send(JSON.stringify(response))
     }).catch(error => {
-      item.send(error)
+      item.send(JSON.stringify(error))
     })
+  })
+}
+// 删除消息list中的指定下标的元素
+let delMsgIndex = (key, index) => {
+  return new Promise((resolve, reject) => {
+    redisClient.lindex(key, index, (err, resObj) => {
+      if (err) {
+        reject(err)
+      } else {
+        console.log('resObj', resObj)
+        redisClient.lrem(key, index, resObj, (err, resObj) => {
+          err ? reject(err) : resolve(resObj)
+        })
+      }
+    })
+  })
+}
+// 删除key
+let delKey = (key) => {
+  return new Promise((resolve, reject) => {
+    redisClient.del(key, (err, resObj) => {
+      err ? reject(err) : resolve(resObj)
+    })
+  })
+}
+// 删除消息
+let delMsg = (key, msgIds) => {
+  msgIds = [...new Set(msgIds)]
+  let clients = [...wss.clients]
+  let pArr = msgIds.reduce((resObj, item) => {
+    resObj.push(delMsgIndex(key, item))
+    return resObj
+  }, [])
+  return Promise.all(pArr).then(() => {
+    return getMsgList(key).then(response => {
+      if (response.length) {
+        return delKey(key)
+      }
+    })
+  })
+  .catch(error => {
+    return error
   })
 }
 
@@ -103,84 +157,60 @@ wss.on('connection', (ws, req) => {
   ws.on('message', (message) => {
     let infoObj = JSON.parse(message)
     // console.log(infoObj)
-    if (!infoObj.receiver.length) {
-      ws.send('receiver is empty')
-    } else {
-      pressInMsg(infoObj.receiver, JSON.stringify(infoObj.data))
-      // .then(response => {
-      //   console.log(response)
-      //   ws.send(JSON.stringify(response))
-      // }).catch(error => {
-      //   console.log(error)
-      //   ws.send(error)
-      // })
-      .then(() => {
-        popUpMsg(infoObj.receiver)
-      })
+    switch (infoObj.type) {
+      case 'message':
+        if (!infoObj.receiver.length) {
+          ws.send('receiver is empty')
+        } else {
+          pressInMsg(infoObj.receiver, JSON.stringify(infoObj.content))
+          // .then(response => {
+          //   console.log('response', response)
+          //   // ws.send(JSON.stringify(response))
+          // }).catch(error => {
+          //   console.log('error', error)
+          //   // ws.send(error)
+          // })
+          .then(() => {
+            popUpMsg(infoObj.receiver)
+          })
+        }
+        break
+      case 'ping':
+        ws.send(createMessage('', 'pong'))
+        break
+      case 'read':
+        let msgIds = infoObj.messageId
+        if (!(msgIds instanceof Array)) {
+          ws.send(createMessage('messageId should is array.'))
+        } else {
+          delMsg(ws.did, msgIds)
+        }
+        break
+      case 'unread':
+        // 暂时无操作
+        break
+      case 'leave':
+        break
+      case 'close':
+        ws.close('4001', 'client request close.')
+        break
+      case 'pong':
+      default:
+        ws.send('type is error.')
+        break
     }
-
-  //   console.log(message)
-  //   let key = 'qwer1234'
-  //   redisClient.set(key, message, (err, resObj) => {
-  //     if (err) {
-  //       ws.send(`${JSON.stringify(err)}`)
-  //     } else {
-  //       redisClient.get(key, (err, resObj) => {
-  //         if (err) {
-  //           ws.send('取出数据时出错了')
-  //         } else {
-  //           // ws.send(`从redis里取出的数据：${resObj}`)
-  //           wss.broadcast(`广播，从redis里取出的数据：${resObj}`)
-  //         }
-  //       })
-  //       // ws.send('')
-  //     }
-  //   })
-  //   // ws.send(`receive: ${message}`)
   })
 })
 
-// setInterval(function () {
-//   wss.broadcast('hello')
-// }, 500)
-
-
-// const WebSocket = require('ws')
-// // const ws = new WebSocket('ws://www.host.com/path')
-// const ws = new WebSocket('wss://echo.websocket.org/', {
-//   origin: 'https://websocket.org'
-// })
-// ws.on('open', function open() {
-//   console.log('connected');
-//   ws.send(Date.now());
-// });
-// ws.on('close', function close() {
-//   console.log('disconnected');
-// });
-// ws.on('message', function incoming(data) {
-//   console.log(`Roundtrip time: ${Date.now() - data} ms`);
-//   setTimeout(function timeout() {
-//     ws.send(Date.now());
-//   }, 500);
-// });
-
-// ws.on('open', function () {
-//   ws.send('something open')
-// })
-// ws.on('message', function (data) {
-//   console.log(data)
-//   ws.send(`receive: ${data}`)
+// wss2.on('connection', (ws, req, client) => {
+//   console.log('connection')
+//   ws.on('message', (msg) => {
+//     ws.send(`receiver ${msg}`)
+//   })
 // })
 
-
-
-// var speed = {
-//   'A1111': 95.0,
-//   'A2222': 50.0
-// }
-// var randomSpeedUpdater = function () {
-//     for (var item in speed) {
-//         var randomizedChange = Math.random(60, 120);
-//         speed[item] += randomizedChange;
-//     }
-// }
+// server.on('upgrade', (request, socket, head) => {
+//   wss2.handleUpgrade(request, socket, head, (ws) => {
+//     wss2.emit('connection', ws, request, client)
+//   })
+// })
