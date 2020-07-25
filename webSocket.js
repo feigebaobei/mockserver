@@ -24,9 +24,10 @@ wss.broadcast = (data) => {
   })
 }
 // 创建消息
-let createMessage = (content = '', type = 'message', messageId = [], createTime = new Date().getTime(), receiver = []) => {
+// let createMessage = (content = '', method = 'message', messageId = [], createTime = new Date().getTime(), receiver = []) => {
+let createMessage = (content = '', receiver = [], method = 'message', messageId = [], createTime = new Date().getTime()) => {
   return JSON.stringify({
-    type: type,
+    method: method,
     content: content,
     messageId: messageId,
     createTime: createTime,
@@ -87,10 +88,6 @@ let popUpMsg = (dids) => {
   let clients = [...wss.clients]
   let onlineClient = clients.filter(item => dids.some(subItem => subItem === item.did))
   // 为每一个在线在did发送消息
-  // console.log('在线的did', onlineClient.reduce((resObj, cur) => {
-  //   resObj.push(cur.did)
-  //   return resObj
-  // }, []))
   onlineClient.map(item => {
     getMsgList(item.did).then(response => {
       // 若key存在则返回key对应的value。value是数组。
@@ -103,10 +100,8 @@ let popUpMsg = (dids) => {
         resObj.push(cur)
         return resObj
       }, [])
-      // console.log('发出的消息', item.did, arr)
       item.send(JSON.stringify(arr))
     }).catch(error => {
-      // console.log('发出的消息', error)
       item.send(JSON.stringify(error))
     })
   })
@@ -118,7 +113,7 @@ let delMsgIndex = (key, index) => {
       if (err) {
         reject(err)
       } else {
-        console.log('resObj', resObj)
+        // console.log('resObj', resObj)
         redisClient.lrem(key, index, resObj, (err, resObj) => {
           err ? reject(err) : resolve(resObj)
         })
@@ -183,7 +178,7 @@ wss.on('connection', (ws, req) => {
     let infoObj = JSON.parse(message)
     // let infoObj = message
     // console.log('infoObj', infoObj)
-    switch (infoObj.type) {
+    switch (infoObj.method) {
       case 'message':
         if (!infoObj.receiver.length) {
           ws.send('receiver is empty')
@@ -202,7 +197,8 @@ wss.on('connection', (ws, req) => {
         }
         break
       case 'ping':
-        ws.send(createMessage('', 'pong'))
+        // ws.send(createMessage('', 'pong'))
+        ws.send(createMessage('', [], 'pong'))
         break
       case 'read':
         let msgIds = infoObj.messageId
@@ -217,12 +213,15 @@ wss.on('connection', (ws, req) => {
         break
       case 'leave':
         break
+      case 'system':
+        ws.send(createMessage(''))
+        break
       case 'close':
         ws.close('4001', 'client request close.')
         break
       case 'pong':
       default:
-        ws.send('type is error.')
+        ws.send('method is error.')
         break
     }
   })
