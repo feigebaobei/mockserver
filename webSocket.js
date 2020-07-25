@@ -24,7 +24,6 @@ wss.broadcast = (data) => {
   })
 }
 // 创建消息
-// let createMessage = (content = '', method = 'message', messageId = [], createTime = new Date().getTime(), receiver = []) => {
 let createMessage = (content = '', receiver = [], method = 'message', messageId = [], createTime = new Date().getTime()) => {
   return JSON.stringify({
     method: method,
@@ -96,7 +95,8 @@ let popUpMsg = (dids) => {
       // console.log('发出的消息 response', response)
       let arr = response.reduce((resObj, cur, index) => {
         cur = JSON.parse(cur)
-        cur.messageId = index
+        // cur.messageId = index
+        // cur.messageIndex = index
         resObj.push(cur)
         return resObj
       }, [])
@@ -129,33 +129,75 @@ let delMsgIndex = (key, index) => {
 //     })
 //   })
 // }
+// // 删除消息
+// let delMsg = (key, msgIds) => {
+//   msgIds = [...new Set(msgIds)]
+//   // 根据messageId获取messageIndex
+//   // let msgIndex = msgIds.reduce((res, item) => {
+//   //   redisClient.
+//   //   res.push()
+//   //   return res
+//   // }, [])
+//   // redisClient.
+//   getMsgList(key).
+//   // console.log('删除消息', key, msgIds)
+//   if (msgIds.length) {
+//     let clients = [...wss.clients]
+//     let pArr = msgIds.reduce((resObj, item) => {
+//       resObj.push(delMsgIndex(key, item))
+//       return resObj
+//     }, [])
+//     return Promise.all(pArr)
+//     // .then((response) => {
+//     //   console.log('response1',  response)
+//     //   return getMsgList(key)
+//     //   .then(response => {
+//     //     console.log('response2', response)
+//     //     if (!response.length) {
+//     //       return delKey(key)
+//     //     }
+//     //   })
+//     // })
+//     // .catch(error => {
+//     //   return error
+//     // })
+//   } else {
+//     // 无操作
+//   }
+// }
 // 删除消息
 let delMsg = (key, msgIds) => {
   msgIds = [...new Set(msgIds)]
-  // console.log('删除消息', key, msgIds)
-  if (msgIds.length) {
-    let clients = [...wss.clients]
-    let pArr = msgIds.reduce((resObj, item) => {
-      resObj.push(delMsgIndex(key, item))
-      return resObj
-    }, [])
-    return Promise.all(pArr)
-    // .then((response) => {
-    //   console.log('response1',  response)
-    //   return getMsgList(key)
-    //   .then(response => {
-    //     console.log('response2', response)
-    //     if (!response.length) {
-    //       return delKey(key)
-    //     }
-    //   })
-    // })
-    // .catch(error => {
-    //   return error
-    // })
-  } else {
-    // 无操作
+  // 根据messageId获取messageIndex
+  // let msgIndex = msgIds.reduce((res, item) => {
+  //   redisClient.
+  //   res.push()
+  //   return res
+  // }, [])
+  // redisClient.
+  if (!msgIds.length) {
+    return
   }
+  getMsgList(key).then(response => {
+    let list = response.reduce((res, cur) => {
+      cur = JSON.parse(cur)
+      res.push(cur)
+      return res
+    }, [])
+    let msgIndexes = list.filter(item => msgIds.some(subItem => subItem === item.messageId)).reduce((res, cur) => {
+      res.push(cur.messageId)
+      return res
+    }, [])
+    return msgIndexes
+  })
+  .then(msgIndexes => {
+    let pArr = msgIndex.reduce((res, cur) => {
+      res.push(delMsgIndex(key, cur))
+      return res
+    }, [])
+    return Promise.all(pAll)
+  })
+  // .catch(error => {})
 }
 
 wss.on('connection', (ws, req) => {
@@ -163,7 +205,6 @@ wss.on('connection', (ws, req) => {
   // 得到did
   let index = req.url.indexOf('did:ttm:')
   let did = req.url.slice(index, index + 70)
-  // console.log('did', did)
   // 检查did是否正确
   if (did.length != 70) {
     // ws.send('did不正确')
@@ -197,14 +238,15 @@ wss.on('connection', (ws, req) => {
         }
         break
       case 'ping':
-        // ws.send(createMessage('', 'pong'))
         ws.send(createMessage('', [], 'pong'))
         break
-      case 'read':
-        let msgIds = infoObj.messageId
+      case 'received':
+        // let msgIds = infoObj.messageId
+        let msgIds = infoObj.content
         if (!(msgIds instanceof Array)) {
-          ws.send(createMessage('messageId should is array.'))
+          ws.send(createMessage('content should is array.'))
         } else {
+          ws.send(createMessage('', [], 'systom'))
           delMsg(ws.did, msgIds)
         }
         break
