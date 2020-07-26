@@ -272,19 +272,12 @@ wss.on('connection', (ws, req) => {
         ws.send(createMessage('', [], 'pong'))
         break
       case 'receipt':
-        // let msgIds = infoObj.messageId
         let msgIds = infoObj.content.messageId
-        if (!(msgIds instanceof Array)) {
-          ws.send(createMessage('content should is array.'))
-        } else {
-          // ws.send(createMessage('', [], 'systom'))
-          // delMsg(ws.did, msgIds)
-          infoObj = completeMsg(infoObj, {sender: ws.did})
-          // console.log('infoObj', infoObj)
-          pressInMsg(infoObj.receiver, JSON.stringify(infoObj)).then(() => {
-            popUpMsgOneByOne(infoObj.receiver)
-          })
-        }
+        infoObj = completeMsg(infoObj, {sender: ws.did})
+        // console.log('infoObj', infoObj)
+        pressInMsg(infoObj.receiver, JSON.stringify(infoObj)).then(() => {
+          popUpMsgOneByOne(infoObj.receiver)
+        })
         break
       case 'unread':
         // 暂时无操作
