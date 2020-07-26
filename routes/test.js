@@ -8,7 +8,28 @@ const Base64 = require('js-base64').Base64
 var bodyParse = require('body-parser')
 const redisClient = require('../redisClient.js')
 
+const ws = require('ws')
+
 router.use(bodyParse.json())
+
+// let url = 'ws://www.lixiaodan.org:9875'
+// // let url = 'ws://localhost:9875'
+// // let websocket = new ws(url, '123456qwerty')
+// let websocket = new ws(url)
+// console.log('websocket', websocket)
+// websocket.onopen = function (e, a, b) {
+//     console.log('onopen', e, a, b)
+// }
+// websocket.onclose = function (e) {
+//     console.log('onclose', e)
+// }
+// websocket.onerror = function (e) {
+//     console.log('onerror', e)
+// }
+// websocket.onmessage = function (e) {
+//     console.log('onmessage', e)
+// }
+// // websocket.send(JSON.stringify({method: 'ping'}))
 
 // var session = require('express-session');
 // var FileStore = require('session-file-store')(session)
@@ -406,7 +427,7 @@ router.route('/redis')
             reject(err)
           } else {
             console.log('resObj', resObj)
-            redisClient.lrem(key, index, resObj, (err, resObj) => {
+            redisClient.lrem(key, 0, resObj, (err, resObj) => {
               err ? reject(err) : resolve(resObj)
             })
           }
@@ -416,27 +437,27 @@ router.route('/redis')
     // res.send('delete')
     let {key} = req.body
     console.log(key)
-    // redisClient.del(key, (err, resObj) => {
-    //   // console.log(err, resObj)
+    redisClient.del(key, (err, resObj) => {
+      // console.log(err, resObj)
+      res.status(200).json({
+        result: true,
+        message: '',
+        data: resObj
+      })
+    })
+    // delMsgIndex(key, 0).then(response => {
     //   res.status(200).json({
     //     result: true,
     //     message: '',
-    //     data: resObj
+    //     data: response
+    //   })
+    // }).catch(error => {
+    //   res.status(200).json({
+    //     result: true,
+    //     message: '',
+    //     data: error
     //   })
     // })
-    delMsgIndex(key, 0).then(response => {
-      res.status(200).json({
-        result: true,
-        message: '',
-        data: response
-      })
-    }).catch(error => {
-      res.status(200).json({
-        result: true,
-        message: '',
-        data: error
-      })
-    })
    })
 
 

@@ -7,6 +7,7 @@ const redisClient = require('./redisClient.js')
 // const WebSocket = require('ws')
 // const server = http.createServer()
 // const wss2 = new WebSocket.Server({noServer: true})
+const ws = require('ws')
 
 const WebSocketServer = require('ws').Server,
   wss = new WebSocketServer({
@@ -251,7 +252,8 @@ wss.on('connection', (ws, req) => {
         } else {
           // infoObj.sender = ws.did
           // 完善消息
-          completeMsg(infoObj, {sender: ws.did})
+          infoObj = completeMsg(infoObj, {sender: ws.did})
+          // console.log('infoObj', infoObj)
           pressInMsg(infoObj.receiver, JSON.stringify(infoObj))
           // .then(response => {
           //   console.log('response', response)
@@ -277,7 +279,8 @@ wss.on('connection', (ws, req) => {
         } else {
           // ws.send(createMessage('', [], 'systom'))
           // delMsg(ws.did, msgIds)
-          completeMsg(infoObj, {sender: ws.did})
+          infoObj = completeMsg(infoObj, {sender: ws.did})
+          // console.log('infoObj', infoObj)
           pressInMsg(infoObj.receiver, JSON.stringify(infoObj)).then(() => {
             popUpMsgOneByOne(infoObj.receiver)
           })
@@ -301,3 +304,7 @@ wss.on('connection', (ws, req) => {
     }
   })
 })
+
+
+// let websocket = new ws('ws://www.lixiaodan.org:9875')
+// console.log('websocket', websocket)
