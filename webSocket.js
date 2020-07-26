@@ -33,6 +33,15 @@ let createMessage = (content = '', receiver = [], method = 'message', messageId 
     receiver: receiver
   })
 }
+// 根据dids获取在线的客户端
+let onlineClientByDid = (dids) => {
+  dids = [...new Set(dids)]
+  let clients = [...wss.clients]
+  let onlineClient = clients.filter(item => dids.some(subItem => subItem === item.did))
+  return onlineClient
+}
+// 完善消息
+let completeMsg = (infoObj, obj) => Object.assign({}, infoObj, obj)
 // 保持同一did只有一个client
 let onlyOneOnline = (did, wss, ws) => {
   ws.did = did
@@ -40,17 +49,15 @@ let onlyOneOnline = (did, wss, ws) => {
   let sameDid = clients.filter(item => {
     return item.did === did
   })
-  // console.log('sameDid', sameDid)
   if (sameDid.length > 1) {
     sameDid[0].send('相同did不能多点登录')
     sameDid[0].close()
   } else {
     // 无操作
   }
-  // console.log('ws.clients', wss.clients.size)
 }
-// 设置消息列表
-let setMsgList = (key, value) => {
+// 在消息列表末尾追加消息
+let rpushMsgList = (key, value) => {
   return new Promise((resolve, reject) => {
     redisClient.rpush(key, value, (err, resObj) => {
       err ? reject(err) : resolve(resObj)
@@ -62,8 +69,7 @@ let pressInMsg = (dids, msg) => {
   dids = [...new Set(dids)]
   let clients = [...wss.clients]
   let pArr = dids.reduce((resObj, item) => {
-    let p = setMsgList(item, msg)
-    resObj.push(p)
+    resObj.push(rpushMsgList(item, msg))
     return resObj
   }, [])
   return Promise.all(pArr)
@@ -106,6 +112,24 @@ let popUpMsg = (dids) => {
     })
   })
 }
+// 为指定did逐条发送消息
+let popUpMsgOneByOne = (dids) => {
+  let onlineClient = onlineClientByDid(dids)
+  onlineClient.map(client => {
+    getMsgList(client.did).then(msgList => {
+      msgList.reduce((resObj, cur, index) => {
+        cur = JSON.parse(cur)
+        delete cur.receiver
+        resObj.push(cur)
+        return resObj
+      }, []).map(msg => {
+        client.send(JSON.stringify(msg))
+      })
+    }).catch(error => {
+      client.send(createMessage('获取消息队列时出错', [], 'error'))
+    })
+  })
+}
 // 删除消息list中的指定下标的元素
 let delMsgIndex = (key, index) => {
   return new Promise((resolve, reject) => {
@@ -113,7 +137,6 @@ let delMsgIndex = (key, index) => {
       if (err) {
         reject(err)
       } else {
-        // console.log('resObj', resObj)
         redisClient.lrem(key, index, resObj, (err, resObj) => {
           err ? reject(err) : resolve(resObj)
         })
@@ -214,16 +237,21 @@ wss.on('connection', (ws, req) => {
   // 保持同一did只有一个client
   onlyOneOnline(did, wss, ws)
   // 发送消息队列
-  popUpMsg([ws.did])
+  // popUpMsg([ws.did])
+  popUpMsgOneByOne([ws.did])
   ws.on('message', (message) => {
     let infoObj = JSON.parse(message)
     // let infoObj = message
     // console.log('infoObj', infoObj)
     switch (infoObj.method) {
-      case 'message':
+      case 'confirm':
+      case 'verification':
         if (!infoObj.receiver.length) {
           ws.send('receiver is empty')
         } else {
+          // infoObj.sender = ws.did
+          // 完善消息
+          completeMsg(infoObj, {sender: ws.did})
           pressInMsg(infoObj.receiver, JSON.stringify(infoObj))
           // .then(response => {
           //   console.log('response', response)
@@ -233,21 +261,26 @@ wss.on('connection', (ws, req) => {
           //   // ws.send(error)
           // })
           .then(() => {
-            popUpMsg(infoObj.receiver)
+            // popUpMsg(infoObj.receiver)
+            popUpMsgOneByOne(infoObj.receiver)
           })
         }
         break
       case 'ping':
         ws.send(createMessage('', [], 'pong'))
         break
-      case 'received':
+      case 'receipt':
         // let msgIds = infoObj.messageId
-        let msgIds = infoObj.content
+        let msgIds = infoObj.content.messageId
         if (!(msgIds instanceof Array)) {
           ws.send(createMessage('content should is array.'))
         } else {
-          ws.send(createMessage('', [], 'systom'))
-          delMsg(ws.did, msgIds)
+          // ws.send(createMessage('', [], 'systom'))
+          // delMsg(ws.did, msgIds)
+          completeMsg(infoObj, {sender: ws.did})
+          pressInMsg(infoObj.receiver, JSON.stringify(infoObj)).then(() => {
+            popUpMsgOneByOne(infoObj.receiver)
+          })
         }
         break
       case 'unread':
@@ -268,16 +301,3 @@ wss.on('connection', (ws, req) => {
     }
   })
 })
-
-// wss2.on('connection', (ws, req, client) => {
-//   console.log('connection')
-//   ws.on('message', (msg) => {
-//     ws.send(`receiver ${msg}`)
-//   })
-// })
-
-// server.on('upgrade', (request, socket, head) => {
-//   wss2.handleUpgrade(request, socket, head, (ws) => {
-//     wss2.emit('connection', ws, request, client)
-//   })
-// })
