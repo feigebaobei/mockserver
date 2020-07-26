@@ -273,8 +273,9 @@ wss.on('connection', (ws, req) => {
         break
       case 'receipt':
         let msgIds = infoObj.content.messageId
+        msgIds = [msgIds]
+        delMsg(key, msgIds)
         infoObj = completeMsg(infoObj, {sender: ws.did})
-        // console.log('infoObj', infoObj)
         pressInMsg(infoObj.receiver, JSON.stringify(infoObj)).then(() => {
           popUpMsgOneByOne(infoObj.receiver)
         })
