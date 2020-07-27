@@ -124,8 +124,12 @@ let popUpMsgOneByOne = (dids) => {
         delete cur.receiver
         resObj.push(cur)
         return resObj
-      }, []).map(msg => {
+      }, []).map((msg, index) => {
+        console.log('msg', msg)
         client.send(JSON.stringify(msg))
+        if (msg.method === 'receipt') {
+          delMsg(client.did, [msg.messageId])
+        }
       })
     }).catch(error => {
       client.send(createMessage('获取消息队列时出错', [], 'error'))
