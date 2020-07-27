@@ -124,7 +124,7 @@ let popUpMsgOneByOne = (dids) => {
         delete cur.receiver
         resObj.push(cur)
         return resObj
-      }, []).map((msg, index) => {
+      }, []).map(msg => {
         console.log('msg', msg)
         client.send(JSON.stringify(msg))
         if (msg.method === 'receipt') {

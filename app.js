@@ -6,8 +6,8 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 // var session = require('express-session');
 // var FileStore = require('session-file-store')(session)
-var redis = require('redis')
-var config = require('./lib/config')
+// var redis = require('redis')
+// var config = require('./lib/config')
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -18,7 +18,7 @@ var claimRouter = require('./routes/claim');
 var privateRouter = require('./routes/private');
 var testRouter = require('./routes/test');
 var schedule = require('./schedule.js')
-var webSocket = require('./webSocket.js')
+// var webSocket = require('./webSocket.js')
 // var webSocket = require('./ws2.js') // 测试用
 
 // 连接数据库
