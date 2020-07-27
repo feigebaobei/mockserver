@@ -77,6 +77,7 @@ let pressInMsg = (dids, msg) => {
 }
 // 从redis里取出消息列表
 let getMsgList = (key) => {
+  // console.log('key', key)
   return new Promise((resolve, reject) => {
     redisClient.lrange(key, 0, -1, (err, resObj) => {
       err ? reject(err) : resolve(resObj)
@@ -202,7 +203,9 @@ let delMsg = (key, msgIds) => {
   if (!msgIds.length) {
     return
   }
+  // console.log('delMsg key', key)
   getMsgList(key).then(response => {
+    // console.log('response', response)
     let list = response.reduce((res, cur) => {
       cur = JSON.parse(cur)
       res.push(cur)
@@ -215,13 +218,17 @@ let delMsg = (key, msgIds) => {
     return msgIndexes
   })
   .then(msgIndexes => {
-    let pArr = msgIndex.reduce((res, cur) => {
+    // console.log('msgIndexes', msgIndexes)
+    let pArr = msgIndexes.reduce((res, cur) => {
       res.push(delMsgIndex(key, cur))
       return res
     }, [])
-    return Promise.all(pAll)
+    return Promise.all(pArr)
   })
-  // .catch(error => {})
+  // .catch(error => {
+  //   console.log(error)
+  //   return error
+  // })
 }
 
 wss.on('connection', (ws, req) => {
@@ -273,12 +280,20 @@ wss.on('connection', (ws, req) => {
         break
       case 'receipt':
         let msgIds = infoObj.content.messageId
+        if (!msgIds) {
+          ws.send('content.messageId is empty')
+        }
         msgIds = [msgIds]
-        delMsg(key, msgIds)
-        infoObj = completeMsg(infoObj, {sender: ws.did})
-        pressInMsg(infoObj.receiver, JSON.stringify(infoObj)).then(() => {
-          popUpMsgOneByOne(infoObj.receiver)
-        })
+        if (!infoObj.receiver.length) {
+          ws.send('receiver is empty')
+        } else {
+          delMsg(ws.did, msgIds)
+          infoObj = completeMsg(infoObj, {sender: ws.did})
+          // console.log('infoObj', infoObj)
+          pressInMsg(infoObj.receiver, JSON.stringify(infoObj)).then(() => {
+            popUpMsgOneByOne(infoObj.receiver)
+          })
+        }
         break
       case 'unread':
         // 暂时无操作

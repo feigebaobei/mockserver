@@ -436,9 +436,8 @@ router.route('/redis')
     }
     // res.send('delete')
     let {key} = req.body
-    console.log(key)
+    // console.log(key)
     redisClient.del(key, (err, resObj) => {
-      // console.log(err, resObj)
       res.status(200).json({
         result: true,
         message: '',
