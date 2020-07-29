@@ -7,6 +7,7 @@ var fs = require('fs')
 const Base64 = require('js-base64').Base64
 var bodyParse = require('body-parser')
 const redisClient = require('../redisClient.js')
+const redisUtils = require('../lib/redisUtils.js')
 
 const ws = require('ws')
 
@@ -357,7 +358,6 @@ router.route('/didPendingTask')
     res.send('delete')
   })
 
-// 父did的任务列表
 router.route('/redis')
   .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
@@ -457,7 +457,67 @@ router.route('/redis')
     //     data: error
     //   })
     // })
-   })
+  })
+
+router.route('/redis/str')
+  .options(cors.corsWithOptions, (req, res) => {
+    res.sendStatus(200)
+  })
+  .get(cors.corsWithOptions, (req, res, next) =>{
+    let {key} = req.query
+    console.log('key', key)
+    redisUtils.str.get(key).then(response => {
+      console.log('response', response)
+      res.status(200).json({
+        result: true,
+        message: '',
+        data: response
+      })
+    }).catch(error => {
+      res.status(500).json({
+        result: false,
+        message: '',
+        error: error
+      })
+    })
+  })
+  .post(cors.corsWithOptions, (req, res, next) => {
+    // res.send('post')
+    let {key, value} = req.body
+    redisUtils.str.set(key, value).then(response => {
+      res.status(200).json({
+        result: true,
+        message: '',
+        data: response
+      })
+    }).catch(error => {
+      res.status(500).json({
+        result: false,
+        message: '',
+        error: error
+      })
+    })
+  })
+  .put(cors.corsWithOptions, (req, res, next) => {
+    res.send('put')
+  })
+  .delete(cors.corsWithOptions, (req, res, next) => {
+    // res.send('delete')
+    let {key} = req.body
+    redisUtils.str.del(key).then(response => {
+      res.status(200).json({
+        result: true,
+        message: '',
+        data: response
+      })
+    }).catch(error => {
+      res.status(500).json({
+        result: false,
+        message: '',
+        error: error
+      })
+    })
+  })
 
 
 module.exports = router;

@@ -19,7 +19,7 @@ var privateRouter = require('./routes/private');
 var testRouter = require('./routes/test');
 var schedule = require('./schedule.js')
 // var webSocket = require('./webSocket.js')
-// var webSocket = require('./ws2.js') // 测试用
+var webSocket = require('./ws2.js') // 测试用
 
 // 连接数据库
 // let red_config = config.redis,

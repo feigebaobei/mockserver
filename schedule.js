@@ -18,7 +18,7 @@ let priStr = JSON.parse(tokenSDKServer.decryptDidttm(didttm, idpwd).data).prikey
 // }, 5000)
 
 
-var j = schedule.scheduleJob('*/5 * * * * *', () => {
+var j = schedule.scheduleJob('*/1 * * * * *', () => {
   tokenSDKServer.getPvData(didttm.did).then(response => {
     if (response.data.result) {
       return JSON.parse(tokenSDKServer.decryptPvData(response.data.result.data, priStr))
@@ -33,7 +33,8 @@ var j = schedule.scheduleJob('*/5 * * * * *', () => {
     let pendingTask = pvdata.pendingTask
     // 当前要处理的任务列表 pendingTask
     for (let key of Object.keys(pendingTask)) {
-      utils.opPendingTask(pendingTask[key])
+      // utils.opPendingTask(pendingTask[key])
+      utils.opPendingTaskItem(key, pendingTask[key])
     }
   })
   .catch(errorObj => {

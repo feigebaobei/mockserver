@@ -1,6 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var utils = require('../lib/utils.js')
+var redisUtils = require('../lib/redisUtils.js')
 var cors = require('./cors')
 var config = require('../lib/config')
 var tokenSDKServer = require('token-sdk-server')
@@ -8,6 +9,7 @@ var fs = require('fs')
 const Base64 = require('js-base64').Base64
 var bodyParser = require('body-parser')
 var multer = require('multer')
+const md5 = require('md5')
 
 router.use(bodyParser.json({limit: '10240kb'}))
 // router.use(bodyParser.json({limit: '40kb'}))
@@ -889,5 +891,211 @@ router.route('/personCheck')
     res.send('delete')
   })
 
+router.route('/adidIdentity')
+  .options(cors.corsWithOptions, (req, res, next) => {
+    res.sendStatus(200)
+  })
+  .get(cors.corsWithOptions, (req, res, next) => {
+    res.send('get')
+  })
+  .post(cors.corsWithOptions, (req, res, next) => {
+    // res.send('post')
+    let {adid, claim_sn, templateId, claimData} = req.body
+    let url = `${claimData.hostname}:${claimData.port}`
+    // 检查参数
+    let regUrl = /((([A-Za-z]{3,9}:(?:\/\/)?)(?:[\-;:&=\+\$,\w]+@)?[A-Za-z0-9\.\-]+|(?:www\.|[\-;:&=\+\$,\w]+@)[A-Za-z0-9\.\-]+)((?:\/[\+~%\/\.\w\-_]*)?\??(?:[\-\+=&;%@\.\w_]*)#?(?:[\.\!\/\\\w]*))?)/
+    if (!regUrl.test(url)) {
+      return res.status(200).json({
+        result: false,
+        message: 'url格式不正确',
+        data: ''
+      })
+    }
+    if (!adid || adid.indexOf('did:ttm:a0') != 0 || adid.length != 70) {
+      return res.status(200).json({
+        result: false,
+        message: 'adid格式不正确',
+        data: ''
+      })
+    }
+    // 检查时间是否小于1min
+    let hashStr = md5(adid+url)
+    let {didttm, idpwd} = require('../tokenSDKData/privateConfig.js')
+    let priStr = JSON.parse(tokenSDKServer.decryptDidttm(didttm, idpwd).data).prikey
+    let pvdata = {}
+    // 检查是否签过名
+    tokenSDKServer.getPvData(didttm.did).then(response => {
+      if (response.data.result) {
+        pvdata = tokenSDKServer.decryptPvData(response.data.result.data, priStr)
+        pvdata = JSON.parse(pvdata)
+        let claimItem = pvdata.certifies.find(item => item.id === claim_sn)
+        return claimItem
+        // tokenSDKServer.get
+        // return Promise.reject({isError: false, payload: new Error('在签名有效期内，不能重复签名。')})
+      } else {
+        return Promise.reject({isError: true, payload: new Error('请求pvdata出错')})
+      }
+    })
+    .then(claimItem => {
+      return tokenSDKServer.getCertifyFingerPrint(claimItem.id, true).then(response => {
+        if (!response.data.result) {
+          return Promise(reject({isError: true, payload: new Error(response.data.error.message || '获取签名列表时出错')}))
+        } else {
+          let signList = response.data.result.sign_list
+          let now = new Date().getTime()
+          let valid = signList.filter(item => item.did === didttm.did).some(item => now < Number(item.expire))
+          if (valid) {
+            return Promise.reject({isError: true, payload: new Error('在签名有效期内，不能重复签名。')})
+          } else {
+            return true
+          }
+        }
+      })
+    })
+    .then(bool => {
+      return redisUtils.str.get(hashStr).then(response => {
+        if (response !== null) {
+          let obj = JSON.parse(response)
+          let now = new Date().getTime()
+          if (now - obj.createTime < 60000) {
+            return Promise.reject({isError: true, payload: new Error('请求randomCode时间间隔不能小于1min')})
+          }
+          return {isError: false, payload: {}}
+        } else {
+          // res.isError(500).json({})
+          return {isError: false}
+        }
+      })
+    })
+    .then(({isError, payload}) => {
+      if (!isError) {
+        // 比对hashValue
+        return tokenSDKServer.checkHashValue(claim_sn, templateId, {name: claimData.name, hostname: claimData.hostname, port: claimData.port}).then(response => {
+          if (!response.result) {
+            return Promise.reject({isError: true, payload: new Error('hashValue不一致')})
+          } else {
+            return {hashValue: response.hashValueChain}
+          }
+        })
+      } else {
+        return Promise.reject({isError: true, payload: payload})
+      }
+    })
+    .then(({hashValue}) => {
+      // bool表示比对hashValue是否正确
+      // 生成randomCode
+      // 绑定对应关系
+      let randomCode = utils.getUuid()
+      let now = new Date().getTime()
+      let obj = {
+        adid: adid,
+        url: url,
+        randomCode: randomCode,
+        templateId: templateId,
+        hashValue: hashValue,
+        createTime: now // 根据createTime判断是否在有效时间内
+      }
+      obj = {
+        type: 'confirmAdidIdentity',
+        content: obj
+      }
+      // 在pvdata.pendingTask里保存，就不需要在redis里保存了。
+      // return redisUtils.str.set(hashStr, JSON.stringify(obj)).then(response => {
+      //   return obj
+      // }).catch(error => {
+      //   return Promise.reject({isError: true, payload: error})
+      // })
+      return obj
+    })
+    .then(obj => {
+      // 添加待办事项
+      // let {didttm, idpwd} = require('../tokenSDKData/privateConfig.js')
+      // let priStr = JSON.parse(tokenSDKServer.decryptDidttm(didttm, idpwd).data).prikey
+      // let pvdata = {}
+      // return tokenSDKServer.getPvData(didttm.did).then(response => {
+      //   if (response.data.result) {
+      //     pvdata = tokenSDKServer.decryptPvData(response.data.result.data, priStr)
+      //     pvdata = JSON.parse(pvdata)
+      //     let pendingTask = pvdata.pendingTask || {}
+      //     pendingTask[claim_sn] = obj
+      //     pvdata.pendingTask = pendingTask
+      //     // 备份pvdata
+      //     let pvdataCt = tokenSDKServer.encryptPvData(pvdata, priStr)
+      //     let key = '0x' + tokenSDKServer.hashKeccak256(didttm.did)
+      //     let type = 'pvdata'
+      //     let signObj = `update backup file${pvdataCt}for${didttm.did}with${key}type${type}`
+      //     let signData = tokenSDKServer.sign({keys: priStr, msg: signObj})
+      //     let signStr = `0x${signData.r.toString('hex')}${signData.s.toString('hex')}${String(signData.v).length >= 2 ? String(signData.v) : '0'+String(signData.v)}`
+      //     return tokenSDKServer.backupData(didttm.did, key, type, pvdataCt, signStr).then(response => {
+      //       if (response.data.result) {
+      //         return true
+      //       } else {
+      //         return Promise.reject(new Error('服务端备份pvdata失败'))
+      //       }
+      //     })
+      //   } else {
+      //     return Promise.reject({isError: true, payload: new Error('获取pvdata出错')})
+      //   }
+      // })
 
+    })
+    .catch(({isError, payload}) => {
+      if (isError) {
+        res.status(500).json({
+          result: false,
+          message: payload.message || '',
+          error: payload
+        })
+      } else {
+        res.status(200).json({
+          result: true,
+          message: '',
+          data: payload
+        })
+      }
+    })
+    // 比对hashValue
+    tokenSDKServer.checkHashValue(claim_sn, templateId, {name: claimData.name, hostname: claimData.hostname, port: claimData.port})
+    .then(response => {
+      if (!response.result) {
+        return Promise.reject({status: true, payload: new Error('hashValue不一致')})
+      } else {
+        return true
+      }
+    })
+    .then(bool => {
+      // 生成randomCode
+      // 绑定对应关系
+      let randomCode = utils.getUuid()
+      let obj = {
+        adid: adid,
+        url: url,
+        createTime: new Date().getTime()
+      }
+      // redisUtils.str.set()
+    })
+    .catch(errorObj => {
+      // console.log('error', error)
+      // status表示是否错误
+      if (errorObj.status) {
+        res.status(500).json({
+          result: false,
+          message: errorObj.payload.message || '',
+          error: errorObj.payload
+        })
+      } else {
+        res.status(200).json({
+          result: true,
+          message: '',
+          data: errorObj.payload
+        })
+      }
+    })
+  })
+  .put(cors.corsWithOptions, (req, res, next) => {
+    res.send('put')
+  })
+  .delete(cors.corsWithOptions, (req, res, next) => {
+    res.send('delete')
+  })
 module.exports = router;
