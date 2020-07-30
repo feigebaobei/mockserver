@@ -24,17 +24,18 @@ let createMessage = (content = '', receiver = [], method = '', messageId = '', c
   })
 }
 
+let clientLocal = null
 
-let reConnect = () => {
-  setTimeout(() => {
-    initWS(url)
-  }, config.webSocket.reConnectGap)
+let reConnect = (ws) => {
+  if (ws.readyState >= 2) {
+    setTimeout(() => {
+      clientLocal = null
+      clientLocal = initWS(url)
+    }, config.webSocket.reConnectGap)
+  }
 }
 
 let initWS = (url) =>{
-  // ws.on('open', (e) => {
-  //   console.
-  // })
   ws = new WebSocket(url)
   ws.on('open', (e) => {
     console.log('open', e)
@@ -45,18 +46,20 @@ let initWS = (url) =>{
   })
   ws.on('error', (e) => {
     console.log(e)
-    reConnect()
+    // reConnect(ws)
+    // ws.close()
   })
-  ws.on('close', () => {
-    reConnect()
+  ws.on('close', (e) => {
+    console.log(e)
+    reConnect(ws)
   })
   return ws
 }
 
-initWS(url)
+clientLocal = initWS(url)
 
 module.exports = {
-  websocketClient: ws,
+  websocketClient: clientLocal,
   createMessage
 }
 
