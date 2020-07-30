@@ -5,8 +5,7 @@ const tokenSDKServer = require('token-sdk-server')
 let {didttm, idpwd} = require('./tokenSDKData/privateConfig.js')//.didttm.did
 let priStr = JSON.parse(tokenSDKServer.decryptDidttm(didttm, idpwd).data).prikey
 
-
-// console.log('schedule')
+let {websocketClient: localWS, createMessage} = require('./ws2.js')
 
 // demo // 可以正确运行
 // var j = schedule.scheduleJob('* * * * * *', () => {
@@ -18,7 +17,8 @@ let priStr = JSON.parse(tokenSDKServer.decryptDidttm(didttm, idpwd).data).prikey
 // }, 5000)
 
 
-var j = schedule.scheduleJob('*/1 * * * * *', () => {
+var j = schedule.scheduleJob('0 */1 * * * *', () => {
+  console.log('schedule')
   tokenSDKServer.getPvData(didttm.did).then(response => {
     if (response.data.result) {
       return JSON.parse(tokenSDKServer.decryptPvData(response.data.result.data, priStr))
@@ -48,6 +48,10 @@ var j = schedule.scheduleJob('*/1 * * * * *', () => {
   })
 })
 
+var j2 = schedule.scheduleJob('*/2 * * * * *', () => {
+  console.log('mess')
+  // localWS.send(createMessage('hello', [], 'test'))
+})
 
 
 // module.exports = {}

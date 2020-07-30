@@ -939,7 +939,7 @@ router.route('/adidIdentity')
     .then(claimItem => {
       return tokenSDKServer.getCertifyFingerPrint(claimItem.id, true).then(response => {
         if (!response.data.result) {
-          return Promise(reject({isError: true, payload: new Error(response.data.error.message || '获取签名列表时出错')}))
+          return Promise.reject({isError: true, payload: new Error(response.data.error.message || '获取签名列表时出错')})
         } else {
           let signList = response.data.result.sign_list
           let now = new Date().getTime()
@@ -1005,7 +1005,8 @@ router.route('/adidIdentity')
       // }).catch(error => {
       //   return Promise.reject({isError: true, payload: error})
       // })
-      return obj
+      // return obj
+      return Promise.reject({isError: false, payload: obj})
     })
     .then(obj => {
       // 添加待办事项
@@ -1051,43 +1052,6 @@ router.route('/adidIdentity')
           result: true,
           message: '',
           data: payload
-        })
-      }
-    })
-    // 比对hashValue
-    tokenSDKServer.checkHashValue(claim_sn, templateId, {name: claimData.name, hostname: claimData.hostname, port: claimData.port})
-    .then(response => {
-      if (!response.result) {
-        return Promise.reject({status: true, payload: new Error('hashValue不一致')})
-      } else {
-        return true
-      }
-    })
-    .then(bool => {
-      // 生成randomCode
-      // 绑定对应关系
-      let randomCode = utils.getUuid()
-      let obj = {
-        adid: adid,
-        url: url,
-        createTime: new Date().getTime()
-      }
-      // redisUtils.str.set()
-    })
-    .catch(errorObj => {
-      // console.log('error', error)
-      // status表示是否错误
-      if (errorObj.status) {
-        res.status(500).json({
-          result: false,
-          message: errorObj.payload.message || '',
-          error: errorObj.payload
-        })
-      } else {
-        res.status(200).json({
-          result: true,
-          message: '',
-          data: errorObj.payload
         })
       }
     })

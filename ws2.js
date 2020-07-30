@@ -1,5 +1,5 @@
 // var express = require('express');
-// var utils = require('./lib/utils.js')
+var utils = require('./lib/utils.js')
 // var tokenSDKServer = require('token-sdk-server')
 var config = require('./lib/config')
 const redisClient = require('./redisClient.js')
@@ -37,12 +37,16 @@ let reConnect = (ws) => {
 
 let initWS = (url) =>{
   ws = new WebSocket(url)
-  ws.on('open', (e) => {
-    console.log('open', e)
+  ws.on('open', () => {
+    console.log('open')
     // ws.send(createMessage('hello', [], 'test'))
   })
-  ws.on('message', (e) => {
-    console.log(e)
+  ws.on('message', (msg) => {
+    // console.log(msg)
+    // console.log(utils)
+    // console.log(test)
+    // console.log(config)
+    utils.opMsg(msg, ws, createMessage)
   })
   ws.on('error', (e) => {
     console.log(e)
