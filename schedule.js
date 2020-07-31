@@ -33,6 +33,11 @@ var j = schedule.scheduleJob('0 */1 * * * *', () => {
     let pendingTask = pvdata.pendingTask
     for (let key of Object.keys(pendingTask)) {
       // utils.opPendingTask(pendingTask[key])
+      // let now = new Date().getTime()
+      // if (now - pendingTask[key].createTime > config.timeInterval.delPendingTaskAdidCert) {
+      //   // pendingTask.
+      // } else {
+      // }
       utils.opPendingTaskItem(key, pendingTask[key])
     }
   })
@@ -47,7 +52,7 @@ var j = schedule.scheduleJob('0 */1 * * * *', () => {
   })
 })
 
-// var j2 = schedule.scheduleJob('*/2 * * * * *', () => {
+// var j2 = schedule.scheduleJob('* * 0 * * *', () => {
 //   // console.log('mess')
 //   // localWS.send(createMessage('hello', [], 'test'))
 // })
