@@ -22,97 +22,77 @@ router.route('/test')
     res.sendStatus(200)
   })
   .get(cors.corsWithOptions, (req, res, next) =>{
-    // 
-    // // 开发pdid的任务列表
-    // let did = 'did:ttm:u05d41330c253b46bd79983c019f9f93477eda305b0f618b7c57401748bde2'
-    // // let key = '0x' + tokenSDKServer.hashKeccak256(`${opRes.item.businessLicenseData.claim_sn}go to check businessLicense`)
-    // let key = '0x' + tokenSDKServer.hashKeccak256(`${did}go to check businessLicense`)
-    // console.log('key', key)
-    // tokenSDKServer.pullData(key, false).then(response => {
-    //   console.log(response.data)
+    // let {didttm, idpwd} = require('../tokenSDKData/privateConfig.js')//.didttm.did
+    // let priStr = JSON.parse(tokenSDKServer.decryptDidttm(didttm, idpwd).data).prikey
+    let pendingTask = {
+        "0xe8dda0c500efee2bd9f31113f373a5d09432a25c180f0d2f31be8952b9e6cc99": {
+            "type": "adidIdentityConfirm",
+            "createTime": 1596165336654,
+            "randomCode": "g00t8xz4h7boyixcxgh5g7mht1bdt4990bofrdxz9ecjmsryfdo4fqgs4e4ilto7knwquuexiy1hs1fvyavug9275n2yu49n7jihhilnfjvkee4wxggf136rhoqm0ruv",
+            "msgObj": {
+                "content": {
+                    "applicationCertificateDataBean": {
+                        "applicantDid": "did:ttm:u03e1f7d80a0af1d55488f5502ebbae61f832388952b84938f26f024cfbf02",
+                        "claim_sn": "0xe8dda0c500efee2bd9f31113f373a5d09432a25c180f0d2f31be8952b9e6cc99",
+                        "createTime": "1596076209000",
+                        "ocrData": {
+                            "name": "连心草",
+                            "hostname": "baidu.com",
+                            "port": "80",
+                            "path": "/haha",
+                            "longitude": "116.653664",
+                            "latitude": "40.122129"
+                        },
+                        "templateId": "0x267be2f87e09df338f3e48dcac796adc4eaa5ec4b6d9829694e2803f219f686d"
+                    },
+                    "msgContentType": "applicationCertificateConfirm",
+                    "sign": "0xa8dc6d1fb40cad480af8dd9be2af993bba9812cea587245ac47015bdeefb8be536fa83d055b7caf306b21068ce0e8286771ede5d4b62cc58475bf4a28065028200"
+                },
+                "createTime": "1596076209000",
+                "messageId": "ccaaba91-2102-4b71-9257-0aeabc4b92b4",
+                "method": "confirm",
+                "sender": "did:ttm:u055806a0396f78a19cc350f7e6869b939677751ab2b84938f26f024cf8854"
+            }
+        },
+        "0xa9271bca05042a8b2b70df62e9457a82cccd1060860f6d02a5d1a71d6ac6ad3b": {
+            "type": "adidIdentityConfirm",
+            "createTime": 1596173359728,
+            "randomCode": "7vnrvit56x50xjcyy6a7nna6pwknb7yo36qhe6n05g7bxwpexbz5193rzt5b1ykjfdjuh5sek5ip7hax5f9ivvk92ym2rz3urzcfo2v57ihr2mj9ioguq9lgpzcuzgw8",
+            "msgObj": {
+                "content": {
+                    "applicationCertificateDataBean": {
+                        "applicantDid": "did:ttm:a044cf2ad410dd19e3bda2c8187b982e720e9df23be9800998ecf8427eb01d",
+                        "applicantSuperDid": "did:ttm:u03e1f7d80a0af1d55488f5502ebbae61f832388952b84938f26f024cfbf02",
+                        "claim_sn": "0xa9271bca05042a8b2b70df62e9457a82cccd1060860f6d02a5d1a71d6ac6ad3b",
+                        "createTime": "1596168291000",
+                        "ocrData": {
+                            "name": "快速探索",
+                            "hostname": "kuaisu.com",
+                            "port": "80",
+                            "path": "/token",
+                            "longitude": "116.54345",
+                            "latitude": "46.4654567"
+                        },
+                        "templateId": "0x267be2f87e09df338f3e48dcac796adc4eaa5ec4b6d9829694e2803f219f686d"
+                    },
+                    "msgContentType": "applicationCertificateConfirm",
+                    "sign": "0x1e7656a7593de6c3deca06a89612b5fcd4582d50682c5c47a1e25cc525b58eda66bf064a2b8b9e72a084b00cc2113467e19906dc704cbc509f14db25373b3ec700"
+                },
+                "createTime": "1596168291000",
+                "messageId": "c761232a-1f72-4052-97b6-a56f56c058bd",
+                "method": "confirm",
+                "sender": "did:ttm:a044cf2ad410dd19e3bda2c8187b982e720e9df23be9800998ecf8427eb01d"
+            }
+        }
+    }
+
+    utils.opPendingTaskItem('0xe8dda0c500efee2bd9f31113f373a5d09432a25c180f0d2f31be8952b9e6cc99', pendingTask['0xe8dda0c500efee2bd9f31113f373a5d09432a25c180f0d2f31be8952b9e6cc99'])
+    // .then(response => {
+    //     // res.status(200).json({})
+    //     res.send('get')
     // })
 
-    // // // 测试签名接口 // 测试all
-    let {didttm, idpwd} = require('../tokenSDKData/privateConfig.js')//.didttm.did
-    let priStr = JSON.parse(tokenSDKServer.decryptDidttm(didttm, idpwd).data).prikey
-    // tokenSDKServer.getPvData(didttm.did).then(response => {
-    //   // console.log(response.data)
-    //   if (response.data.result) {
-    //     let pvdataCt = response.data.result.data
-    //     let pvdata = tokenSDKServer.decryptPvData(pvdataCt, priStr)
-    //     pvdata = JSON.parse(pvdata)
-    //     // console.log('pvdata', pvdata)
-    //     // let pendingTask = pvdata.pendingTask
-    //     // for (let key of Object.keys(pendingTask)) {
-    //     //   utils.opPendingTask(pendingTask[key])
-    //     // }
-    //     res.status(200).json({
-    //       result: true,
-    //       message: '',
-    //       data: pvdata
-    //     })
-    //   }
-    // })
 
-
-    // // 测试并发数组请求
-    // let arr = [
-    // '0xf8e82013a882a00b75511f3988c1b58c5ac718be32dd27e8ea0ed1f78e93e024',
-    // '0xf8e82013a882a00b75511f3988c1b58c5ac718be32dd27e8ea0ed1f78e93e024',
-    // '0xf8e82013a882a00b75511f3988c1b58c5ac718be32dd27e8ea0ed1f78e93e024',
-    // '0xf8e82013a882a00b75511f3988c1b58c5ac718be32dd27e8ea0ed1f78e93e024']
-    // // tokenSDKServer.getCertifyFingerPrint(arr)
-    // let fn = (arr) => {
-    //   return Promise.all(arr.map(item => {
-    //     return tokenSDKServer.getCertifyFingerPrint(item).then(response => {
-    //       return response.data
-    //     })
-    //   }))
-    // }
-    // fn(arr).then(arr => {
-    //   console.log(arr)
-    // }).catch(error => {
-    //   console.error
-    // })
-
-
-
-
-    // 删除pvdata.pendingTask
-    tokenSDKServer.getPvData(didttm.did).then(response => {
-      // console.log(response.data)
-      if (response.data.result) {
-        let pvdataCt = response.data.result.data
-        let pvdata = tokenSDKServer.decryptPvData(pvdataCt, priStr)
-        pvdata = JSON.parse(pvdata)
-        console.log('pvdata', pvdata)
-        pvdata.pendingTask = {}
-        let ct = tokenSDKServer.encryptPvData(pvdata, priStr)
-        console.log('ct', ct)
-        res.status(200).json({
-          result: true,
-          message: '',
-          data: pvdata
-        })
-      }
-    }).catch(error => {
-      console.log(error)
-      res.status(500).json({
-        result: false,
-        message: '',
-        data: error
-      })
-    })
-
-
-
-
-
-    // res.status(200).json({
-    //   result: true,
-    //   message: '',
-    //   data: ''
-    // })
   })
   .post(cors.corsWithOptions, (req, res, next) => {
     res.send('post')
@@ -685,5 +665,44 @@ router.route('/meta')
     res.send('delete')
   })
 
+// 0xe8dda0c500efee2bd9f31113f373a5d09432a25c180f0d2f31be8952b9e6cc99
+
+// 对应刘欢提供的存证服务
+router.route('/certify')
+  .options(cors.corsWithOptions, (req, res) => {
+    res.sendStatus(200)
+  })
+  .get(cors.corsWithOptions, (req, res, next) =>{
+    // res.send('get')
+    // console.log(req.query)
+    let claim_sn = req.query.claim_sn
+    let signList = req.query.signList || false
+    // console.log(claim_sn)
+    // let claim_sn = '0xe8dda0c500efee2bd9f31113f373a5d09432a25c180f0d2f31be8952b9e6cc99'
+    // return tokenSDKServer.getCertifyFingerPrint(claimItem.id, true).then(response => {
+    tokenSDKServer.getCertifyFingerPrint(claim_sn).then(response => {
+      res.status(200).json({
+        result: false,
+        message: '',
+        data: response.data
+      })
+    }).catch(error => {
+      console.log('error', error)
+      res.status(200).json({
+        result: false,
+        message: '',
+        data: error
+      })
+    })
+  })
+  .post(cors.corsWithOptions, (req, res, next) => {
+    res.send('post')
+  })
+  .put(cors.corsWithOptions, (req, res, next) => {
+    res.send('put')
+  })
+  .delete(cors.corsWithOptions, (req, res, next) => {
+    res.send('delete')
+  })
 
 module.exports = router;

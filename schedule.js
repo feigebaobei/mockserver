@@ -31,11 +31,9 @@ var j = schedule.scheduleJob('0 */1 * * * *', () => {
       return Promise.reject({do: false})
     }
     let pendingTask = pvdata.pendingTask
-    // 当前要处理的任务列表 pendingTask
     for (let key of Object.keys(pendingTask)) {
       // utils.opPendingTask(pendingTask[key])
       utils.opPendingTaskItem(key, pendingTask[key])
-      // opMsg()
     }
   })
   .catch(errorObj => {
