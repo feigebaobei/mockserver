@@ -35,6 +35,7 @@ var j = schedule.scheduleJob('0 */1 * * * *', () => {
     for (let key of Object.keys(pendingTask)) {
       // utils.opPendingTask(pendingTask[key])
       utils.opPendingTaskItem(key, pendingTask[key])
+      // opMsg()
     }
   })
   .catch(errorObj => {
@@ -48,11 +49,10 @@ var j = schedule.scheduleJob('0 */1 * * * *', () => {
   })
 })
 
-var j2 = schedule.scheduleJob('*/2 * * * * *', () => {
-  // console.log('mess')
-  // localWS.send(createMessage('hello', [], 'test'))
-  
-})
+// var j2 = schedule.scheduleJob('*/2 * * * * *', () => {
+//   // console.log('mess')
+//   // localWS.send(createMessage('hello', [], 'test'))
+// })
 
 
 // module.exports = {}
