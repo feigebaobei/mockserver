@@ -46,7 +46,7 @@ let initWS = (url) =>{
     // console.log(utils)
     // console.log(test)
     // console.log(config)
-    utils.opMsg(msg, ws, createMessage)
+    utils.opMsg(msg)
   })
   ws.on('error', (e) => {
     console.log(e)

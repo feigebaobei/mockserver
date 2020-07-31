@@ -18,7 +18,7 @@ let {websocketClient: localWS, createMessage} = require('./ws2.js')
 
 
 var j = schedule.scheduleJob('0 */1 * * * *', () => {
-  console.log('schedule')
+  // console.log('schedule')
   tokenSDKServer.getPvData(didttm.did).then(response => {
     if (response.data.result) {
       return JSON.parse(tokenSDKServer.decryptPvData(response.data.result.data, priStr))
@@ -49,8 +49,9 @@ var j = schedule.scheduleJob('0 */1 * * * *', () => {
 })
 
 var j2 = schedule.scheduleJob('*/2 * * * * *', () => {
-  console.log('mess')
+  // console.log('mess')
   // localWS.send(createMessage('hello', [], 'test'))
+  
 })
 
 
