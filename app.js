@@ -21,7 +21,7 @@ var schedule = require('./schedule.js')
 // var webSocket = require('./webSocket.js')
 // var webSocket = require('./ws2.js') // 测试用
 
-// 连接数据库
+// 连接数据库 redis
 // let red_config = config.redis,
 //     RED_HOST = red_config.host,
 //     RED_PWD = red_config.pass,
@@ -40,6 +40,9 @@ var schedule = require('./schedule.js')
 // client.on('connect', (res) => {
 //   console.log('connect')
 // })
+
+// 连接数据库 mongodb
+// let url = config.mongodbUrl
 
 var app = express();
 

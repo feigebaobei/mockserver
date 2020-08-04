@@ -3,6 +3,8 @@ var router = express.Router();
 var utils = require('../lib/utils.js')
 var bodyParser = require('body-parser')
 var cors = require('./cors')
+const redisUtils = require('../lib/redisUtils.js')
+const User = require('../models/user')
 
 // router.use(bodyParser.urlencoded({extended: false}))
 router.use(bodyParser.json())
@@ -35,6 +37,60 @@ router.get('/login/userInfo', cors.corsWithOptions, (req, res, next) => {
     message: ''
   })
 })
+// 注册
+router.route('/signup')
+  .options(cors.corsWithOptions, (req, res) => {
+    res.sendStatus(200)
+  })
+  .get(cors.corsWithOptions, (req, res, next) => {
+    res.send('get')
+  })
+  .post(cors.corsWithOptions, (req, res, next) => {
+    // res.send('post')
+    // let {key, value} = req.body
+    // user
+    // redisUtils.list.rpush('users', '234t').then(response => {
+    //   res.status(200).json({
+    //     result: true,
+    //     message: '',
+    //     data: response
+    //   })
+    // }).catch(error => {
+    //   res.status(500).json({
+    //     result: false,
+    //     message: '',
+    //     data: error
+    //   })
+    // })
+    // User.register(new User({username: req.body.username}))
+    let {account, password} = req.body
+    let user = new User({
+      account: account,
+      password: password
+      // admin: 
+    })
+    user.save((err, doc) => {
+      if (err) {
+        res.status(500).json({
+          result: false,
+          message: '',
+          error: err
+        })
+      } else {
+        res.status(500).json({
+          result: false,
+          message: '',
+          error: err
+        })
+      }
+    })
+  })
+  .put(cors.corsWithOptions, (req, res, next) => {
+    res.send('put')
+  })
+  .delete(cors.corsWithOptions, (req, res, next) => {
+    res.send('delete')
+  })
 // 登录
 // router.post('/login', (req, res, next) => {
 //   res.send({name: 'tank', avatar: 'https://ss1.bdstatic.com/70cFuXSh_Q1YnxGkpoWK1HF6hhy/it/u=1718143317,3612074652&fm=26&gp=0.jpg'})

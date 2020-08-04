@@ -247,63 +247,6 @@ router.route('/cancel')
     res.send('delete')
   })
 
-// 生成海报。
-// 不用了。
-router.route('/genPoster')
-  .options(cors.corsWithOptions, (req, res) => {
-    res.sendStatus(200)
-  })
-  .get(cors.corsWithOptions, (req, res, next) =>{
-    res.send('get')
-  })
-  .post(cors.corsWithOptions, (req, res, next) => {
-    // res.send('post')
-    // let claim_sn = res.body.claim_sn
-    // let expire = res.body.expire
-    // let purpose = res.body.purpose
-    // let hashDataItem = res.body.hashDataItem
-    let {claim_sn, expire, purpose, hashDataItem} = req.body
-    let did = 'a012349681e922731094502ebffdf1f10389c3ad11c8a67847c68f0482e608'
-    let idpwd = '123456'
-    let pvdata = utils.obtainPvData(did, idpwd)
-    let [certify] = pvdata.manageCertifies.filter(item => item.claim_sn === claim_sn)
-    let certifyData = {}
-    for (let [key, value] of Object.entries(certify.data)) {
-      // if (hashDataItem.hasOwnProperty(key)) {
-       if (hashDataItem.includes(key)) {
-        certifyData[key] = {
-          value: new tokenSDKServer.sm3().sum(value),
-          hasHash: true
-        }
-      } else {
-        certifyData[key] = {
-          value: value,
-          hasHash: false
-        }
-      }
-    }
-    // console.log('certifyData', certifyData)
-    tokenSDKServer.setTemporaryCertifyData(claim_sn, certify.templateId, certifyData, expire, purpose).then(response => {
-      res.status(200).json({
-        result: true,
-        message: '',
-        data: response.data.data
-      })
-    }).catch(erro => {
-      res.status(200).json({
-        result: false,
-        message: '',
-        error: ''
-      })
-    })
-  })
-  .put(cors.corsWithOptions, (req, res, next) => {
-    res.send('put')
-  })
-  .delete(cors.corsWithOptions, (req, res, next) => {
-    res.send('delete')
-  })
-
 // 使用certifyData请求签发证书。
 // 专用于签发身份证
 router.route('/signCertify')
@@ -314,7 +257,7 @@ router.route('/signCertify')
     res.send('get')
   })
   // .post(cors.corsWithOptions, (req, res, next) => {
-  .post((req, res, next) => { // 为方便原生同事开发，所以去掉了“来源白名单”限制。
+  .post(cors.corsWithOptions, (req, res, next) => { // 为方便原生同事开发，所以去掉了“来源白名单”限制。
     // 使用clain_sn请求证书散列值
     // 使用templateId请求template
     let {templateId, claim_sn, certifyData, pic} = req.body

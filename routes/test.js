@@ -578,6 +578,55 @@ router.route('/redis/str')
     })
   })
 
+// 操作redis里的list元素
+router.route('/redis/list')
+  .options(cors.corsWithOptions, (req, res) => {
+    res.sendStatus(200)
+  })
+  .get(cors.corsWithOptions, (req, res, next) =>{
+    // res.send('get')
+    let {key} = req.query
+    redisClient.lrange(key, 0, -1, (err, resObj) => {
+      if (err) {
+        res.status(500).json({
+          result: false,
+          message: '',
+          error: err
+        })
+      } else {
+        res.status(200).json({
+          result: true,
+          message: '',
+          data: resObj
+        })
+      }
+    })
+  })
+  .post(cors.corsWithOptions, (req, res, next) => {
+    // res.send('post')
+    let {key, value} = req.body
+    // console.log(key, value)
+    redisUtils.list.rpush(key, value).then(response => {
+      res.status(200).json({
+        result: true,
+        message: '',
+        data: response
+      })
+    }).catch(error => {
+      res.status(500).json({
+        result: false,
+        message: '',
+        error: error
+      })
+    })
+  })
+  .put(cors.corsWithOptions, (req, res, next) => {
+    res.send('put')
+  })
+  .delete(cors.corsWithOptions, (req, res, next) => {
+    // res.send('delete')
+  })
+
 // 刘欢提供的模板（元数据）服务
 router.route('/meta')
   .options(cors.corsWithOptions, (req, res) => {

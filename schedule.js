@@ -17,7 +17,7 @@ let {websocketClient: localWS, createMessage} = require('./ws2.js')
 // }, 5000)
 
 
-var j = schedule.scheduleJob('0 */1 * * * *', () => {
+var j = schedule.scheduleJob('* 30 * * * *', () => {
   // console.log('schedule')
   tokenSDKServer.getPvData(didttm.did).then(response => {
     if (response.data.result) {
