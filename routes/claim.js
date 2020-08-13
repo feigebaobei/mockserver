@@ -277,7 +277,7 @@ router.route('/signCertify')
     // } else {
       tokenSDKServer.getPvData(didttm.did).then(response => {
         if (response.data.error) {
-          return Promise(reject({status: true, payload: new Error(response.data.error.message || '请求pvdata出错')}))
+          return Promise.reject({status: true, payload: new Error(response.data.error.message || '请求pvdata出错')})
         }
         pvdata = JSON.parse(tokenSDKServer.decryptPvData(response.data.result.data, priStr))
         return pvdata
@@ -291,7 +291,7 @@ router.route('/signCertify')
         // 获取证书签名列表
         return tokenSDKServer.getCertifyFingerPrint(item.id, true).then(response => {
           if (!response.data.result) {
-            return Promise(reject({status: true, payload: new Error(response.data.error.message || '获取签名列表时出错')}))
+            return Promise.reject({status: true, payload: new Error(response.data.error.message || '获取签名列表时出错')})
           } else {
             let signList = response.data.result.sign_list
             let now = new Date().getTime()

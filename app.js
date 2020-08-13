@@ -21,6 +21,8 @@ var schedule = require('./schedule.js')
 // var webSocket = require('./webSocket.js')
 // var webSocket = require('./ws2.js') // 测试用
 
+var webSocket = require('./communicate.js')
+
 // 连接数据库 redis
 // let red_config = config.redis,
 //     RED_HOST = red_config.host,
@@ -43,6 +45,13 @@ var schedule = require('./schedule.js')
 
 // 连接数据库 mongodb
 // let url = config.mongodbUrl
+// 连接数据库
+// const url = config.mongoUrl
+// const connect = mongoose.connect(url, {useNewUrlParser: true, useCreateIndex: true, useFindAndModify: false})
+// connect.then(db => {
+//   console.log('Connect correct to server')
+// }).catch(err => {console.log(err)})
+
 
 var app = express();
 

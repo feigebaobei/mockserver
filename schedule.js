@@ -5,7 +5,7 @@ const tokenSDKServer = require('token-sdk-server')
 let {didttm, idpwd} = require('./tokenSDKData/privateConfig.js')//.didttm.did
 let priStr = JSON.parse(tokenSDKServer.decryptDidttm(didttm, idpwd).data).prikey
 
-let {websocketClient: localWS, createMessage} = require('./ws2.js')
+// let {websocketClient: localWS, createMessage} = require('./ws2.js')
 
 // demo // 可以正确运行
 // var j = schedule.scheduleJob('* * * * * *', () => {
