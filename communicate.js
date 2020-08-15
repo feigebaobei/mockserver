@@ -165,11 +165,18 @@ let businessLicensefn = (msgObj) => {
     tokenSDKServer.send({type: 'error', message: config.errorMap.arguments.message, error: new Error(config.errorMap.arguments.message)}, [msgObj.sender], 'confirm')
     return
   }
+  // 是否正在签发
+  let pvdataStr = tokenSDKServer.getPvData()
+  let pvdata = JSON.parse(pvdataStr)
+  let pendingTask = pvdata.pendingTask ? pvdata.pendingTask : {}
+  if (pendingTask[msgObj.content.businessLicenseData.claim_sn]) {
+    tokenSDKServer.send({type: 'error', message: config.errorMap.existPendingTask.message, error: new Error(config.errorMap.existPendingTask.message)}, [msgObj.sender], 'confirm')
+    return
+  }
   // 验签
   let isok = tokenSDKServer.verify({sign: msgObj.content.sign})
   if (isok) {
     // console.log('isok', isok)
-    // 获取证书的签名列表。检查是否签过。
     tokenSDKServer.getCertifyFingerPrint(msgObj.content.businessLicenseData.claim_sn, true).then(response => {
       // console.log(response.data)
       if (!response.data.result) {
@@ -209,7 +216,8 @@ let businessLicensefn = (msgObj) => {
       //     return Promise.reject({isError: false, payload: null})
       //   }
       // })
-      tokenSDKSerer.addPendingTask(msgObj, msgObj.content.businessLicenseData.claim_sn)
+      // console.log('pending')
+      tokenSDKSerer.addPendingTask(msgObj, msgObj.content.businessLicenseData.claim_sn, msgObj.content.businessLicenseData.type)
       return Promise.reject({isError: false, payload: null})
     })
     // 通知父did处理待办事项
@@ -217,7 +225,7 @@ let businessLicensefn = (msgObj) => {
       if (isError) {
         tokenSDKServer.send({type: 'error', message: payload.message, error: payload}, [msgObj.sender], 'confirm')
       } else {
-        tokenSDKServer.send({type: 'pending', message: config.errorMap.pending.message}, [msgObj.sender], 'confirm')
+        tokenSDKServer.send({type: 'pending', message: config.errorMap.addPending.message}, [msgObj.sender], 'confirm')
       }
     })
   } else {
