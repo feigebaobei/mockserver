@@ -9,7 +9,7 @@ const utils = require('./lib/utils.js')
 // const priStr = JSON.parse(tokenSDKServer.decryptDidttm(didttm, idpwd).data).prikey
 const {didttm, idpwd} = tokenSDKServer.getPrivateConfig()
 const priStr = tokenSDKServer.getPriStr()
-// console.log(didttm, idpwd, priStr)
+console.log(didttm, idpwd, priStr)
 
 // 认证身份证
 let idConfirmfn = (msgObj) => {
