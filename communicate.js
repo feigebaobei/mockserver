@@ -5,38 +5,42 @@ const tokenSDKServer = require('token-sdk-server')
 // const wsc = require('ws')
 const config = require('./lib/config.js')
 const utils = require('./lib/utils.js')
-const {didttm, idpwd} = require('./tokenSDKData/privateConfig.js')
-const priStr = JSON.parse(tokenSDKServer.decryptDidttm(didttm, idpwd).data).prikey
+// const {didttm, idpwd} = require('./tokenSDKData/privateConfig.js')
+// const priStr = JSON.parse(tokenSDKServer.decryptDidttm(didttm, idpwd).data).prikey
+const {didttm, idpwd} = tokenSDKServer.getPrivateConfig()
+const priStr = tokenSDKServer.getPriStr()
+// console.log(didttm, idpwd, priStr)
 
-let confirmfn = (msgObj) => {
-  console.log('confirmfn', JSON.stringify(msgObj))
+// 认证身份证
+let idConfirmfn = (msgObj) => {
+  // console.log('idConfirmfn', JSON.stringify(msgObj))
   // 验签
   let isok = tokenSDKServer.verify({sign: msgObj.content.sign})
   if (isok) {
     // console.log(isok)
     // 检查参数有效性
-
+    if (!msgObj.content.idCardDataBean.applicantDid || !msgObj.content.idCardDataBean.claim_sn || !msgObj.content.idCardDataBean.members || !msgObj.content.idCardDataBean.ocrData || !msgObj.content.idCardDataBean.templateId) {
+      tokenSDKServer.send({type: 'error', message: config.errorMap.argument.message, error: new Error(config.errorMap.argument.message)}, [msgObj.sender], 'confirm')
+    }
     // js是单线程的，使用同步方法处理文件就不会出现同时操作文件引发的冲突了。
     // 处理pvdata
     // function getPvData({origin = 'local', decrypt = true, did = ''}) {
     let pvdataStr = tokenSDKServer.getPvData()
     // console.log('pvdataStr', JSON.parse(pvdataStr))
     let pvdata = JSON.parse(pvdataStr)
-    console.log('pvdata', pvdata)
+    // console.log('pvdata', pvdata)
     let hashValue = null
     let template = {}
-
-    // 是否签过名
     // 获取证书的签名列表
     tokenSDKServer.getCertifyFingerPrint(msgObj.content.idCardDataBean.claim_sn, true).then(response => {
       if (!response.data.result) {
-        return Promise.reject({isError: true, payload: new Error(response.data.error.message || config.errorMap.getCertifyFingerPrint.message)})
+        return Promise.reject({isError: true, payload: new Error(response.data.error.message ? response.data.error.message : config.errorMap.getCertifyFingerPrint.message)})
       } else {
         let signList = response.data.result.sign_list
         let now = Date.now()
         let valid = signList.filter(item => item.did === didttm.did).some(item => now < Number(item.expire))
         if (valid) {
-          return true
+          // return true
           return Promise.reject({isError: true, payload: new Error(config.errorMap.donotRepeatSign.message)})
         } else {
           return true
@@ -139,19 +143,99 @@ let confirmfn = (msgObj) => {
       })
       pvdataCt = tokenSDKServer.encryptPvData(pvdata, priStr)
       fs.writeFileSync('./tokenSDKData/pvdataCt.txt', pvdataCt)
-      tokenSDKServer.send({msgContent: 'finish'}, [msgObj.sender], 'confirm')
+      // 反馈给请求方
+      tokenSDKServer.send({type: 'finish'}, [msgObj.sender], 'confirm')
     })
+    // 反馈给请求方
     .catch(({isError, payload}) => {
       // console.log(isError, payload)
       if (isError) {
-        tokenSDKServer.send({msgContent: 'error', message: payload.message}, [msgObj.sender], 'confirm')
+        tokenSDKServer.send({type: 'error', message: payload.message, error: payload}, [msgObj.sender], 'confirm')
       }
     })
-    // 解锁pvdata
-    // 反馈给请求方
-
   } else {
-    tokenSDKServer.send(config.errorMap.verify.message, [msgObj.sender], 'confirm')
+    tokenSDKServer.send({type: 'error', message: config.errorMap.verify.message, error: new Error(config.errorMap.verify.message)}, [msgObj.sender], 'confirm')
+  }
+}
+
+// 认证营业执照
+let businessLicensefn = (msgObj) => {
+  // 检查参数是否正确
+  if (!msgObj.content.businessLicenseData.applicantDid || !msgObj.content.businessLicenseData.claim_sn || !msgObj.content.businessLicenseData.createTime || !msgObj.content.businessLicenseData.members || !msgObj.content.businessLicenseData.ocrData || !msgObj.content.sign || !msgObj.content.type) {
+    tokenSDKServer.send({type: 'error', message: config.errorMap.arguments.message, error: new Error(config.errorMap.arguments.message)}, [msgObj.sender], 'confirm')
+    return
+  }
+  // 验签
+  let isok = tokenSDKServer.verify({sign: msgObj.content.sign})
+  if (isok) {
+    // console.log('isok', isok)
+    // 获取证书的签名列表。检查是否签过。
+    tokenSDKServer.getCertifyFingerPrint(msgObj.content.businessLicenseData.claim_sn, true).then(response => {
+      // console.log(response.data)
+      if (!response.data.result) {
+        return Promise.reject({isError: true, payload: new Error(response.data.error.message ? response.data.error.message : config.errorMap.getCertifyFingerPrint.message)})
+      } else {
+        let signList = response.data.result.sign_list
+        // let now = Date.now()
+        let valid = signList.filter(item => item.did === didttm.did && Date.now() < item.expire)
+        return valid ? valid : Promise.reject({isError: true, payload: new Error(config.errorMap.donotRepeatSign.message)})
+      }
+    })
+    // 检查是否正在签发。
+    .then(bool => {
+      let pvdataStr = tokenSDKServer.getPvData()
+      let pvdata = JSON.parse(pvdataStr)
+      return pvdata.pendingTask[msgObj.content.businessLicenseData.claim_sn] ? true : false
+      if (pvdata.pendingTask[msgObj.content.businessLicenseData.claim_sn]) {
+        return false
+      } else {
+        return Promise.reject({isError: true, payload: new Error(config.errorMap.pended.message)})
+      }
+    })
+    // 放在pendingTask里
+    .then(bool => {
+      // return tokenSDKServer.addPendingTask(
+      // // {
+      // //   id: msgObj.content.businessLicenseData.claim_sn,
+      // //   createTime: msgObj.content.businessLicenseData.createTime,
+      // //   members: msgObj.content.businessLicenseData.members,
+      // //   keys: msgObj.content.businessLicenseData.ocrData
+      // // }
+      //   msgObj
+      // ).then(({error, result}) => {
+      //   if (error) {
+      //     return Promise.reject({isError: true, payload: error})
+      //   } else {
+      //     return Promise.reject({isError: false, payload: null})
+      //   }
+      // })
+      tokenSDKSerer.addPendingTask(msgObj, msgObj.content.businessLicenseData.claim_sn)
+      return Promise.reject({isError: false, payload: null})
+    })
+    // 通知父did处理待办事项
+    .catch(({isError, payload}) => {
+      if (isError) {
+        tokenSDKServer.send({type: 'error', message: payload.message, error: payload}, [msgObj.sender], 'confirm')
+      } else {
+        tokenSDKServer.send({type: 'pending', message: config.errorMap.pending.message}, [msgObj.sender], 'confirm')
+      }
+    })
+  } else {
+    tokenSDKServer.send({type: 'error', message: config.errorMap.verify.message, error: new Error(config.errorMap.verify.message)}, [msgObj.sender], 'confirm')
+  }
+}
+// 绑定认证类的回调方法
+let confirmfn = (msgObj) => {
+  // console.log('msgObj', msgObj)
+  switch (msgObj.content.type) {
+    case 'IDCardConfirm':
+      idConfirmfn(msgObj)
+      break
+    case 'businessLicenseConfirm':
+      businessLicensefn(msgObj)
+      break
+    default:
+      break
   }
 }
 let bindfn = (msgObj) => {

@@ -249,6 +249,7 @@ router.route('/cancel')
 
 // 使用certifyData请求签发证书。
 // 专用于签发身份证
+// 已经被relay代替了。一段时间后（2020.08.30）删除该接口。
 router.route('/signCertify')
   .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
@@ -482,8 +483,8 @@ router.route('/needSignCertify')
     res.send('delete')
   })
 
-// odid身份认证
-router.route('/legelPersonQualification')
+// 法人认证。（即：原来的odid身份认证）
+router.route('/legalPersonQualification')
   .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
   })
