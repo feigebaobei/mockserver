@@ -27,18 +27,14 @@ router.route('/test')
     // console.log(pvdata)
     let pendingTask = pvdata.pendingTask ? pvdata.pendingTask : {}
     for (let key of Object.keys(pendingTask)) {
-      // console.log('kyesfsdf', key)
       utils.opPendingTaskItem(key, pendingTask[key])
+      // utils.opPendingTaskItem(key)
     }
-    // let pvdata = tokenSDKServer.getPvData()
-    // // console.log(pvdata)
-    // pvdata = JSON.parse(pvdata)
     res.status(200).json({
       result: true,
       message: '',
       data: 'pvdata'
     })
-
   })
   .post(cors.corsWithOptions, (req, res, next) => {
     res.send('post')

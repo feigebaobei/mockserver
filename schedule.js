@@ -56,6 +56,7 @@ var j = schedule.scheduleJob('* */29 * * * *', () => {
   let pendingTask = pvdata.pendingTask ? pvdata.pendingTask : {}
   for (let key of Object.keys(pendingTask)) {
     utils.opPendingTaskItem(key, pendingTask[key])
+    // utils.opPendingTaskItem(key)
   }
 })
 

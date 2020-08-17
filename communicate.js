@@ -170,14 +170,13 @@ let businessLicensefn = (msgObj) => {
   let pvdata = JSON.parse(pvdataStr)
   let pendingTask = pvdata.pendingTask ? pvdata.pendingTask : {}
   if (pendingTask[msgObj.content.businessLicenseData.claim_sn]) {
-    // console.log('exist')
     tokenSDKServer.send({type: 'error', message: config.errorMap.existPendingTask.message, error: new Error(config.errorMap.existPendingTask.message)}, [msgObj.sender], 'confirm')
     return
   }
   // 验签
   let isok = tokenSDKServer.verify({sign: msgObj.content.sign})
   if (isok) {
-    // console.log('isok', isok)
+    console.log('isok', isok)
     // 是否已经签发，并在有效期内。
     tokenSDKServer.getCertifyFingerPrint(msgObj.content.businessLicenseData.claim_sn, true).then(response => {
       // console.log(response.data)
@@ -185,50 +184,17 @@ let businessLicensefn = (msgObj) => {
         return Promise.reject({isError: true, payload: new Error(response.data.error.message ? response.data.error.message : config.errorMap.getCertifyFingerPrint.message)})
       } else {
         let signList = response.data.result.sign_list
-        // let now = Date.now()
         let valid = signList.filter(item => item.did === didttm.did && Date.now() < item.expire)
         return valid ? valid : Promise.reject({isError: true, payload: new Error(config.errorMap.donotRepeatSign.message)})
       }
     })
-    // 检查是否正在签发。
-    // .then(bool => {
-    //   let pvdataStr = tokenSDKServer.getPvData()
-    //   let pvdata = JSON.parse(pvdataStr)
-    //   return pvdata.pendingTask[msgObj.content.businessLicenseData.claim_sn] ? true : false
-    //   if (pvdata.pendingTask[msgObj.content.businessLicenseData.claim_sn]) {
-    //     return false
-    //   } else {
-    //     return Promise.reject({isError: true, payload: new Error(config.errorMap.pended.message)})
-    //   }
-    // })
     // 放在pendingTask里
     .then(bool => {
-      // return tokenSDKServer.addPendingTask(
-      // // {
-      // //   id: msgObj.content.businessLicenseData.claim_sn,
-      // //   createTime: msgObj.content.businessLicenseData.createTime,
-      // //   members: msgObj.content.businessLicenseData.members,
-      // //   keys: msgObj.content.businessLicenseData.ocrData
-      // // }
-      //   msgObj
-      // ).then(({error, result}) => {
-      //   if (error) {
-      //     return Promise.reject({isError: true, payload: error})
-      //   } else {
-      //     return Promise.reject({isError: false, payload: null})
-      //   }
-      // })
-      // console.log('pending w3ertyuytres')
-      // console.log(msgObj, msgObj.content.businessLicenseData.claim_sn, msgObj.content.type)
       tokenSDKServer.addPendingTask(msgObj, msgObj.content.businessLicenseData.claim_sn, msgObj.content.type)
       let pvdataStr = tokenSDKServer.getPvData()
       let pvdata = JSON.parse(pvdataStr)
-      // console.log('vpda', pvdata)
       return Promise.reject({isError: false, payload: null})
     })
-    // .catch(error => {
-    //   console.log(error)
-    // })
     // 通知父did处理待办事项
     .catch(({isError, payload}) => {
       if (isError) {
