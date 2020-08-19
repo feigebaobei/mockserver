@@ -54,30 +54,6 @@ router.route('/pvdata')
     // res.send('get')
     let {did} = req.query
     did = did ? did : didttm.did
-    // tokenSDKServer.getPvData(didttm.did).then(response => {
-    //   // console.log(response.data)
-    //   if (response.data.result) {
-    //     let pvdataCt = response.data.result.data
-    //     let pvdata = tokenSDKServer.decryptPvData(pvdataCt, priStr)
-    //     pvdata = JSON.parse(pvdata)
-    //     // console.log('pvdata', pvdata)
-    //     // pvdata.pendingTask = {}
-    //     // let ct = tokenSDKServer.encryptPvData(pvdata, priStr)
-    //     // console.log('ct', ct)
-    //     res.status(200).json({
-    //       result: true,
-    //       message: '',
-    //       data: pvdata
-    //     })
-    //   }
-    // }).catch(error => {
-    //   console.log(error)
-    //   res.status(500).json({
-    //     result: false,
-    //     message: '',
-    //     data: error
-    //   })
-    // })
     let pvdata = tokenSDKServer.getPvData()
     pvdata = JSON.parse(pvdata)
     res.status(200).json({
@@ -95,7 +71,11 @@ router.route('/pvdata')
         },
         "superDid": "did:ttm:u05d41330c253b46bd79983c019f9f93477eda305b0f618b7c57401748bde2",
         "certifies": {},
-        "pendingTask": {}
+        "pendingTask": {},
+        contacts: {
+          administrator: ['did:ttm:u055806a0396f78a19cc350f7e6869b939677751ab2b84938f26f024cf8854'],
+          auditor: ['did:ttm:u055806a0396f78a19cc350f7e6869b939677751ab2b84938f26f024cf8854']
+        }
     }
     // console.log('pvdata', pvdata)
     let pvdataCt = tokenSDKServer.encryptPvData(pvdata, priStr)

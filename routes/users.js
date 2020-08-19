@@ -1,10 +1,14 @@
 var express = require('express');
 var router = express.Router();
+const md5 = require('md5')
+const passport = require('passport')
 var utils = require('../lib/utils.js')
 var bodyParser = require('body-parser')
 var cors = require('./cors')
 const redisUtils = require('../lib/redisUtils.js')
 const User = require('../models/user')
+const config = require('../lib/config')
+const mongodbUtils = require('../lib/mongodbUtils')
 
 // router.use(bodyParser.urlencoded({extended: false}))
 router.use(bodyParser.json())
@@ -37,6 +41,40 @@ router.get('/login/userInfo', cors.corsWithOptions, (req, res, next) => {
     message: ''
   })
 })
+
+// 登录
+// router.post('/login', (req, res, next) => {
+//   res.send({name: 'tank', avatar: 'https://ss1.bdstatic.com/70cFuXSh_Q1YnxGkpoWK1HF6hhy/it/u=1718143317,3612074652&fm=26&gp=0.jpg'})
+// })
+router.route('/login')
+  .options(cors.corsWithOptions, (req, res) => {
+    res.sendStatus(200)
+  })
+  .get(cors.corsWithOptions, (req, res, next) => {
+    res.send('get')
+  })
+  .post(cors.corsWithOptions,
+    // passport.authenticate('local', (err, user, msgObj, d) => {
+    //   console.log(err, user, msgObj, d)
+    // }),
+    passport.authenticate('local'),
+    (req, res, next) => {
+      // console.log('body', req.body)
+      // console.log('body', req.session)
+      res.status(200).json({
+        result: 200,
+        message: 'login success',
+        data: {}
+      })
+    }
+  )
+  .put(cors.corsWithOptions, (req, res, next) => {
+    res.send('put')
+  })
+  .delete(cors.corsWithOptions, (req, res, next) => {
+    res.send('delete')
+  })
+
 // 注册
 router.route('/signup')
   .options(cors.corsWithOptions, (req, res) => {
@@ -46,41 +84,42 @@ router.route('/signup')
     res.send('get')
   })
   .post(cors.corsWithOptions, (req, res, next) => {
-    // res.send('post')
-    // let {key, value} = req.body
-    // user
-    // redisUtils.list.rpush('users', '234t').then(response => {
-    //   res.status(200).json({
-    //     result: true,
-    //     message: '',
-    //     data: response
-    //   })
-    // }).catch(error => {
-    //   res.status(500).json({
-    //     result: false,
-    //     message: '',
-    //     data: error
-    //   })
-    // })
-    // User.register(new User({username: req.body.username}))
-    let {account, password} = req.body
-    let user = new User({
-      account: account,
-      password: password
-      // admin: 
+    let {email, password} = req.body
+    // email = String(Math.floor(Math.random() * 100000))
+    User.findOne({email: email}).exec().then(response => {
+      if (response) {
+        return Promise.reject({isError: true, payload: new Error(config.errorMap.existUser.message)})
+      } else {
+        let user = new User({
+          email: email,
+          password: md5(password)
+        })
+        return mongodbUtils.save(user).then(response => {
+          if (response.error) {
+            return Promise.reject({isError: true, payload: response.result})
+          } else {
+            return Promise.reject({isError: false, payload: response.result})
+          }
+        })
+      }
     })
-    user.save((err, doc) => {
-      if (err) {
+    .catch(({isError, payload}) => {
+      // console.log(isError, payload)
+      if (isError) {
         res.status(500).json({
           result: false,
-          message: '',
-          error: err
+          // message: '',
+          message: payload.message,
+          // error: payload
+          // error: new Error("dfsdfsd")
+          // error: new Error(payload.message)
+          error: payload
         })
       } else {
-        res.status(500).json({
-          result: false,
+        res.status(200).json({
+          result: true,
           message: '',
-          error: err
+          data: payload
         })
       }
     })
@@ -91,10 +130,7 @@ router.route('/signup')
   .delete(cors.corsWithOptions, (req, res, next) => {
     res.send('delete')
   })
-// 登录
-// router.post('/login', (req, res, next) => {
-//   res.send({name: 'tank', avatar: 'https://ss1.bdstatic.com/70cFuXSh_Q1YnxGkpoWK1HF6hhy/it/u=1718143317,3612074652&fm=26&gp=0.jpg'})
-// })
+
 // 前端请求用户信息
 router.route('/userInfo/:uuid')
   .options(cors.corsWithOptions, (req, res) => {
@@ -207,4 +243,50 @@ router.route('/receive')
     res.send('delete')
   })
 
+router.route('/logout')
+  .options(cors.corsWithOptions, (req, res) => {
+    res.sendStatus(200)
+  })
+  .get(cors.corsWithOptions, (req, res, next) => {
+    res.send('get')
+  })
+  .post(cors.corsWithOptions, (req, res, next) => {
+    // console.log('2134567')
+    console.log(req.session)
+    console.log(req.user)
+    // if (req.session) {
+    //   req.logout()
+    // }
+    res.status(200).json({
+      result: true,
+      message: '',
+      data: {}
+    })
+  })
+  .put(cors.corsWithOptions, (req, res, next) => {
+    res.send('put')
+  })
+  .delete(cors.corsWithOptions, (req, res, next) => {
+    res.send('delete')
+  })
+
+router.route('/test')
+  .options(cors.corsWithOptions, (req, res) => {
+    res.sendStatus(200)
+  })
+  .get(cors.corsWithOptions, (req, res, next) => {
+    res.send('get')
+  })
+  .post(cors.corsWithOptions, (req, res, next) => {
+    console.log(req.body)
+    console.log(req.session)
+    console.log(req.user)
+    res.send('post')
+  })
+  .put(cors.corsWithOptions, (req, res, next) => {
+    res.send('put')
+  })
+  .delete(cors.corsWithOptions, (req, res, next) => {
+    res.send('delete')
+  })
 module.exports = router;

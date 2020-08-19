@@ -4,10 +4,12 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 // var bodyParser = require('body-parser');
 var logger = require('morgan');
-// var session = require('express-session');
+const session = require('express-session');
 // var FileStore = require('session-file-store')(session)
 // var redis = require('redis')
-// var config = require('./lib/config')
+const mongoose = require('mongoose')
+const passport = require('passport')
+const config = require('./lib/config')
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -17,10 +19,12 @@ var didRouter = require('./routes/did');
 var claimRouter = require('./routes/claim');
 var privateRouter = require('./routes/private');
 var testRouter = require('./routes/test');
+var auditRouter = require('./routes/audit.js')
 var schedule = require('./schedule.js')
 // var webSocket = require('./webSocket.js')
 // var webSocket = require('./ws2.js') // 测试用
-
+const authenticate = require('./authenticate.js')
+const {mongoStore} = require('./mongoStore.js')
 var webSocket = require('./communicate.js')
 
 // 连接数据库 redis
@@ -43,15 +47,16 @@ var webSocket = require('./communicate.js')
 //   console.log('connect')
 // })
 
-// 连接数据库 mongodb
+// // 连接数据库 mongodb
 // let url = config.mongodbUrl
-// 连接数据库
+// // 连接数据库
 // const url = config.mongoUrl
-// const connect = mongoose.connect(url, {useNewUrlParser: true, useCreateIndex: true, useFindAndModify: false})
-// connect.then(db => {
-//   console.log('Connect correct to server')
-// }).catch(err => {console.log(err)})
-
+const url = config.mongodb.prod
+// console.log('url', url)
+const connect = mongoose.connect(url, {useNewUrlParser: true, useCreateIndex: true, useFindAndModify: false, useUnifiedTopology: true})
+connect.then(db => {
+  console.log('Connected mongodb')
+}).catch(err => {console.log(err)})
 
 var app = express();
 
@@ -67,13 +72,28 @@ app.use(logger('dev'));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public'))); // 托管静态文件
 
-// app.use(session({
-//   name: 'session-id',
-//   secret: '12345-67890',
-//   saveUninitialized: false,
-//   resave: true,
-//   store: new FileStore()
-// }))
+app.use(session({
+  // name: 'session-id',
+  // secret: '12345-67890',
+  // saveUninitialized: false,
+  // resave: true,
+  // store: new FileStore()
+
+  // resave: true,
+  name: 'uid',
+  secret: config.session.secret,
+  saveUninitialized: false,
+  cookie: {
+    maxAge: 24 * 60 * 60 * 1000,
+    // path: '/test',
+    httpOnly: false,
+    secure: false,
+    rolling: true
+  },
+  store: mongoStore
+}))
+app.use(passport.initialize())
+app.use(passport.session())
 
 // 允许跨域
 // app.all('*', (req, res, next) => {
@@ -92,6 +112,7 @@ app.use('/node', nodeRouter);
 app.use('/did', didRouter);
 app.use('/claim', claimRouter);
 app.use('/private', privateRouter);
+app.use('/audit', auditRouter);
 app.use('/test', testRouter);
 
 // catch 404 and forward to error handler

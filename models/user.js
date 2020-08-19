@@ -11,13 +11,21 @@ var User = new Schema({
   //   type: String,
   //   default: ''
   // },
-  account: {
+  email: {
     type: String,
     default: ''
   },
   password: {
     type: String,
     default: ''
+  },
+  token: {
+    type: String,
+    dafault: '',
+  },
+  tokens: {
+    type: Array,
+    default: []
   },
   admin: {
     type: Boolean,

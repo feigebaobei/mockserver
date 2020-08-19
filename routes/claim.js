@@ -832,6 +832,7 @@ router.route('/personCheck')
     res.send('delete')
   })
 
+// adid的身份证明类证书
 router.route('/adidIdentity')
   .options(cors.corsWithOptions, (req, res, next) => {
     res.sendStatus(200)

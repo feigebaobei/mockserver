@@ -222,8 +222,33 @@ let confirmfn = (msgObj) => {
       break
   }
 }
+
 let bindfn = (msgObj) => {
   console.log('bindfn', JSON.stringify(msgObj))
 }
 
-tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, isDev: true, autoReceipt: false})
+let authfn = (msgObj) => {
+  // 因当下没有多种授权的内容、形式。所以没使用switch处理。
+  // 检查参数是否正确
+  if (!msgObj.reqUserInfoKeys.opResult || !msgObj.reqUserInfoKeys.claim_sn) {
+    tokenSDKServer.send({type: 'error', message: config.errorMap.arguments.message, error: new Error(config.errorMap.arguments.message)}, [msgObj.sender], 'auth')
+  }
+  // 检查是否为审核员
+  let pvdataStr = tokenSDKServer.getPvData()
+  let pvdata = JSON.parse(pvdataStr)
+  let auditor = pvdata.contents.auditor || []
+  let exist = auditor.some(item => item === msgObj.sender)
+  if (!exist) {
+    tokenSDKServer.send({type: 'error', message: config.errorMap.existAuditor.message, error: new Error(config.errorMap.existAuditor.message)}, [msgObj.sender], 'auth')
+  }
+  // 设置人工审核的结果
+  let setResult =  tokenSDKServer.setPendingItemIsPersonCheck(msgObj.reqUserInfoKeys.claim_sn, msgObj.reqUserInfoKeys.opResult, msgObj.sender)
+  if (!setResult) {
+    tokenSDKServer.send({type: 'error', message: config.errorMap.setField.message, error: new Error(config.errorMap.setField.message)}, [msgObj.sender], 'auth')
+  }
+  // 发消息通过证书拥有者，人工审核的结果。
+  tokenSDKServer.send({type: 'finish', message: config.errorMap.personAuditFinish.message}, [pvdata.pendingTask.msgObj.content.businessLicenseData.applicantDid], 'auth')
+}
+
+// tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, isDev: true, autoReceipt: false})
+tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: false, autoReceipt: true})
