@@ -1,12 +1,12 @@
-// const {mongoStore, getAllSession, getSessionBySid, setSession} = require('./mongoStore.js')
 const fs = require('fs')
 const tokenSDKServer = require('token-sdk-server')
-// const User = require('./models/User')
+const User = require('./models/user')
+const mongodbUtils = require('./lib/mongodbUtils')
 // const wsc = require('ws')
 const config = require('./lib/config.js')
 const utils = require('./lib/utils.js')
-// const {didttm, idpwd} = require('./tokenSDKData/privateConfig.js')
-// const priStr = JSON.parse(tokenSDKServer.decryptDidttm(didttm, idpwd).data).prikey
+const {mongoStore, getAllSession, getSessionBySid, setSession} = require('./mongoStore.js')
+
 const {didttm, idpwd} = tokenSDKServer.getPrivateConfig()
 const priStr = tokenSDKServer.getPriStr()
 // console.log(didttm, idpwd, priStr)
@@ -20,7 +20,8 @@ let idConfirmfn = (msgObj) => {
     // console.log(isok)
     // 检查参数有效性
     if (!msgObj.content.idCardDataBean.applicantDid || !msgObj.content.idCardDataBean.claim_sn || !msgObj.content.idCardDataBean.members || !msgObj.content.idCardDataBean.ocrData || !msgObj.content.idCardDataBean.templateId) {
-      tokenSDKServer.send({type: 'error', message: config.errorMap.argument.message, error: new Error(config.errorMap.argument.message)}, [msgObj.sender], 'confirm')
+      tokenSDKServer.send({type: 'error', message: config.errorMap.arguments.message, error: new Error(config.errorMap.arguments.message)}, [msgObj.sender], 'confirm')
+      return
     }
     // js是单线程的，使用同步方法处理文件就不会出现同时操作文件引发的冲突了。
     // 处理pvdata
@@ -224,7 +225,158 @@ let confirmfn = (msgObj) => {
 }
 
 let bindfn = (msgObj) => {
-  console.log('bindfn', JSON.stringify(msgObj))
+  console.log('bindfn', msgObj)
+  let isok = tokenSDKServer.verify({sign: msgObj.content.sign})
+  if (isok) {
+    // 检查参数有效性
+    if (!msgObj.content.bindInfo.client || !msgObj.content.bindInfo.applicationSystem || !msgObj.content.bindInfo.time || !msgObj.content.sessionId || !msgObj.content.sign) {
+      tokenSDKServer.send({type: 'error', message: config.errorMap.arguments.message, error: new Error(config.errorMap.arguments.message)}, [msgObj.sender], 'bind')
+      return
+    }
+    let claim_sn = msgObj.content.certificateId,
+        template = null
+    // sessionID有效性
+    getSessionBySid(msgObj.content.sessionId).then(({error, result}) => {
+      if (error) {
+        return Promise.reject({})
+      } else {
+        return result
+      }
+    })
+    // 检查qrStr的时间有效性
+    .then(session => {
+      return true // 测试用
+      let now = Date.now()
+      if (now > session.expireQrStr) {
+        return Promise.reject({isError: true, payload: new Error(config.errorMap.qrStrTimeout.message)})
+      } else {
+        return true
+      }
+    })
+    // 得到模板数据
+    .then(bool => {
+      return tokenSDKServer.getCertifyFingerPrint(claim_sn).then(response => {
+        if (response.data.result) {
+          return response.data.result.template_id
+        } else {
+          return Promise.reject({isError: true, payload: new Error(config.errorMap.getCertifyFingerPrint.message)})
+        }
+      })
+    })
+    .then(templateId => {
+      return tokenSDKServer.getTemplate(templateId).then(response => {
+        // console.log('template', response.data)
+        if (response.data.result) {
+          template = response.data.result
+          return true
+        } else {
+          return Promise.reject({isError: true, payload: new Error(config.errorMap.getTemplate.message)})
+        }
+      })
+    })
+    // 检查证书的有效签名
+    .then(bool => {
+      // return true // 测试用
+      return tokenSDKServer.hasValidSign(claim_sn, didttm.did).then(({error, result}) => {
+        if (error) {
+          // return Promise.reject({isError: true, payload: error})
+          return false
+        } else {
+          return true
+        }
+      })
+    })
+    // 比对hashValue
+    // 签名
+    .then(bool => {
+      // return false // 测试用
+      if (bool) {
+        return true
+      } else {
+        // 比对hashValue
+        return tokenSDKServer.checkHashValue(claim_sn, template.template_id, msgObj.content.bindInfo).then(response => {
+          // console.log('1234567u', response)
+          if (response.result) {
+            return true
+          } else {
+            return Promise.reject({isError: true, payload: new Error(config.errorMap.claimFingerPrint.message)})
+          }
+        })
+        // 签名
+        .then(bool => {
+          return tokenSDKServer.signCertify(claim_sn, '认证应用签名', new Date().setFullYear(2120)).then(response => {
+            // console.log(response)
+            if (response.result) {
+              return true
+            } else {
+              return Promise.reject({isError: true, payload: new Error(config.errorMap.sign.message)})
+            }
+          })
+        })
+      }
+    })
+    // 此时证书上的签名已经有效了。
+    .then(bool => {
+      // 登录
+      return User.findOne({token: msgObj.content.bindInfo.client}).exec().then(user => {
+        // console.log('login', user)
+        // return true
+        if (!user) {
+          // return Promise.reject({isError: false, payload: null}) // 用户表里没用该用户，需要注册。
+          let obj = {
+            token: msgObj.content.bindInfo.client,
+            profile: {}
+          }
+          for (let [key, value] of Object.entries(msgObj.content.userInfo)) {
+            obj.profile[key] = value
+          }
+          let user = new User(obj)
+          return mongodbUtils.save(user).then(({error, result}) => {
+            // console.log('亲爱', error, result)
+            if (error) {
+              return Promise.reject({isError: true, payload: new Error(config.errorMap.saveFail.message)})
+            } else {
+              return result
+            }
+          })
+        } else {
+          return user
+        }
+      })
+    })
+    // 修改session
+    .then(user => {
+      return getSessionBySid(msgObj.content.sessionId).then(({error, result}) => {
+        let obj = {
+          user: String(user._id)
+        }
+        result.passport = obj
+        return setSession(msgObj.content.sessionId, result).then(({error, result}) => {
+          if (error) {
+            return Promise.reject({isError: true, payload: error})
+          }
+        })
+      })
+    })
+    // .then(() => {
+    //   getSessionBySid(msgObj.content.sessionId).then(({error, result}) => {
+    //     console.log('更新session', error, result)
+    //   })
+    // })
+    // .catch(error => {
+    //   console.log(error)
+    // })
+    // 返回消息
+    .catch(({isError, payload}) => {
+      if (isError) {
+        tokenSDKServer.send({type: 'error', message: payload.message, error: payload}, [msgObj.sender], 'bind')
+      } else {
+        tokenSDKServer.send({type: 'success', message: payload}, [msgObj.sender], 'bind')
+      }
+    })
+  } else {
+    tokenSDKServer.send({type: 'error', message: config.errorMap.verify.message, error: new Error(config.errorMap,verify.message)}, [msgObj.sender], 'bind')
+  }
 }
 
 let authfn = (msgObj) => {
@@ -250,5 +402,5 @@ let authfn = (msgObj) => {
   tokenSDKServer.send({type: 'finish', message: config.errorMap.personAuditFinish.message}, [pvdata.pendingTask.msgObj.content.businessLicenseData.applicantDid], 'auth')
 }
 
-// tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, isDev: true, autoReceipt: false})
-tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: false, autoReceipt: true})
+// tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: false, autoReceipt: true}) // 生产
+tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: true, autoReceipt: false}) // 开发

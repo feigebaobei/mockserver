@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 const md5 = require('md5')
 const passport = require('passport')
+const tokenSDKServer = require('token-sdk-server')
 var utils = require('../lib/utils.js')
 var bodyParser = require('body-parser')
 var cors = require('./cors')
@@ -9,6 +10,7 @@ const redisUtils = require('../lib/redisUtils.js')
 const User = require('../models/user')
 const config = require('../lib/config')
 const mongodbUtils = require('../lib/mongodbUtils')
+const {mongoStore, getAllSession, getSessionBySid, setSession} = require('../mongoStore.js')
 
 // router.use(bodyParser.urlencoded({extended: false}))
 router.use(bodyParser.json())
@@ -22,25 +24,25 @@ router.get('/', cors.corsWithOptions, function(req, res, next) {
 });
 
 // 指明需要用户提供那些数据
-router.get('/login/userInfo', cors.corsWithOptions, (req, res, next) => {
-  // console.log(req.session.id)
-  // req.session.save((err) => {
-  //   // 应该在数据库记录错误
-  //   console.log('指明需要用户提供那些数据', err)
-  // })
-  res.status(200).json({
-    result: true,
-    data: {
-      adid: 'did:ttm:a0f49a0b95a5201b690bf0b79eb715dad9ae7815efe9800998ecf8427e8d74',
-      userInfoList: ['name', 'avatar', 'udid'],
-      goal_uri: 'http://127.0.0.1:9876/user/login',
-      // sessionId: utils.getUuid()
-      uuid: utils.getUuid()
-      // sessionId: req.session.id
-    },
-    message: ''
-  })
-})
+// router.get('/login/userInfo', cors.corsWithOptions, (req, res, next) => {
+//   // console.log(req.session.id)
+//   // req.session.save((err) => {
+//   //   // 应该在数据库记录错误
+//   //   console.log('指明需要用户提供那些数据', err)
+//   // })
+//   res.status(200).json({
+//     result: true,
+//     data: {
+//       adid: 'did:ttm:a0f49a0b95a5201b690bf0b79eb715dad9ae7815efe9800998ecf8427e8d74',
+//       userInfoList: ['name', 'avatar', 'udid'],
+//       goal_uri: 'http://127.0.0.1:9876/user/login',
+//       // sessionId: utils.getUuid()
+//       uuid: utils.getUuid()
+//       // sessionId: req.session.id
+//     },
+//     message: ''
+//   })
+// })
 
 // 登录
 // router.post('/login', (req, res, next) => {
@@ -61,10 +63,11 @@ router.route('/login')
     (req, res, next) => {
       // console.log('body', req.body)
       // console.log('body', req.session)
+      // res.setHeader("Access-Control-Allow-Methods", "POST, GET")
       res.status(200).json({
-        result: 200,
+        result: true,
         message: 'login success',
-        data: {}
+        data: true
       })
     }
   )
@@ -132,7 +135,8 @@ router.route('/signup')
   })
 
 // 前端请求用户信息
-router.route('/userInfo/:uuid')
+// router.route('/userInfo/:uuid')
+router.route('/userInfo')
   .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
   })
@@ -147,22 +151,39 @@ router.route('/userInfo/:uuid')
     // }, 3000)
 
     // let randNum = Math.floor(Math.random() * 3)
-    let randNum = false
-    // console.log(randNum)
-    if (!randNum) {
+    // let randNum = false
+    // // console.log(randNum)
+    // if (!randNum) {
+    //   res.status(200).json({
+    //     result: true,
+    //     data: {
+    //       // name: 'tank',
+    //       nickName: 'tank',
+    //       avatar: 'https://ss1.bdstatic.com/70cFuXSh_Q1YnxGkpoWK1HF6hhy/it/u=1718143317,3612074652&fm=26&gp=0.jpg',
+    //       udid: 'did:ttm:u0f49a0b95a5201b690bf0b79eb715dad9ae7815efe9800998ecf8427e8d74'
+    //     },
+    //     message: ''
+    //   })
+    // } else {
+    //   // res.send(false)
+    //   res.status(500).json({result: false, message: 'do not have userInfo', error: ''})
+    // }
+
+    // console.log(req.session)
+    // console.log(req.sessionID)
+    // console.log(req.user)
+    if (req.user) {
       res.status(200).json({
         result: true,
-        data: {
-          // name: 'tank',
-          nickName: 'tank',
-          avatar: 'https://ss1.bdstatic.com/70cFuXSh_Q1YnxGkpoWK1HF6hhy/it/u=1718143317,3612074652&fm=26&gp=0.jpg',
-          udid: 'did:ttm:u0f49a0b95a5201b690bf0b79eb715dad9ae7815efe9800998ecf8427e8d74'
-        },
-        message: ''
+        message: '',
+        data: req.user.profile
       })
     } else {
-      // res.send(false)
-      res.status(500).json({result: false, message: 'do not have userInfo', error: ''})
+      res.status(200).json({
+        result: false,
+        message: '',
+        data: ''
+      })
     }
   })
   // 接收用户属性
@@ -278,7 +299,7 @@ router.route('/test')
     res.send('get')
   })
   .post(cors.corsWithOptions, (req, res, next) => {
-    console.log(req.body)
+    console.log(req.cookies)
     console.log(req.session)
     console.log(req.user)
     res.send('post')
@@ -289,4 +310,56 @@ router.route('/test')
   .delete(cors.corsWithOptions, (req, res, next) => {
     res.send('delete')
   })
+
+// 测试用
+router.route('/cookie')
+  .options(cors.corsWithOptions, (req, res) => {
+    res.sendStatus(200)
+  })
+  .get(cors.corsWithOptions, (req, res, next) => {
+    res.send('get')
+  })
+  .post(cors.corsWithOptions, (req, res, next) => {
+    // console.log(req.body)
+    // console.log(req.session)
+    // console.log(req.user)
+    res.cookie('name', 'stone', {maxAge: 60000, httpOnly: true})
+    res.cookie('name1', 'stone', {maxAge: 60000, httpOnly: true})
+    // res.cookie('name20', 'stone', {maxAge: 60000, httpOnly: true, signed: true})
+    // res.cookie('name21', 'stone', {maxAge: 60000, httpOnly: true, signed: true})
+    res.send('post')
+  })
+  .put(cors.corsWithOptions, (req, res, next) => {
+    res.send('put')
+  })
+  .delete(cors.corsWithOptions, (req, res, next) => {
+    res.send('delete')
+  })
+
+// qrStr
+router.route('/qrStr')
+  .options(cors.corsWithOptions, (req, res) => {
+    res.sendStatus(200)
+  })
+  .get(cors.corsWithOptions, (req, res, next) => {
+    let expire = Date.now() + 60 * 1000
+    req.session.expireQrStr = expire
+    res.status(200).json({
+      result: true,
+      message: '',
+      data: tokenSDKServer.genBindQrStr(['name'], 'N', req.sessionID, '登录认证应用', expire)
+    })
+  })
+  .post(cors.corsWithOptions, (req, res, next) => {
+    res.send('post')
+  })
+  .put(cors.corsWithOptions, (req, res, next) => {
+    res.send('put')
+  })
+  .delete(cors.corsWithOptions, (req, res, next) => {
+    res.send('delete')
+  })
+
+
+
 module.exports = router;

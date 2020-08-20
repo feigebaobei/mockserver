@@ -23,6 +23,10 @@ var User = new Schema({
     type: String,
     dafault: '',
   },
+  github: {
+    type: String,
+    dafault: '',
+  },
   tokens: {
     type: Array,
     default: []
@@ -30,6 +34,20 @@ var User = new Schema({
   admin: {
     type: Boolean,
     default: false
+  },
+  profile: {
+    name: {
+      type: String,
+      default: ''
+    },
+    gender: {
+      type: String,
+      default: ''
+    },
+    picture: {
+      type: String, // base64
+      default: ''
+    },
   }
 })
 // User.plugin(passportLocalMongoose)

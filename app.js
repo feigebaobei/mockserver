@@ -80,15 +80,28 @@ app.use(session({
   // store: new FileStore()
 
   // resave: true,
-  name: 'uid',
+  name: 'tokenDid',
   secret: config.session.secret,
+  // saveUninitialized: true,
   saveUninitialized: false,
   cookie: {
-    maxAge: 24 * 60 * 60 * 1000,
-    // path: '/test',
-    httpOnly: false,
-    secure: false,
-    rolling: true
+    maxAge: 10 * 24 * 60 * 60 * 1000,
+    // domain: 'localhost:8080',
+    // domain: 'http://localhost',
+
+    // domain: 'localhost',
+    // domain: '127.0.0.1',
+
+    // domain: 'baidu.com', // no
+    // domain: 'baidu', // no
+    // path: 'localhost',
+    // httpOnly: false,
+    // secure: true,
+    // secure: false,
+    // sameSite: 'strict',
+    // sameSite: 'lax',
+    // sameSite: 'none',
+    // rolling: true
   },
   store: mongoStore
 }))
