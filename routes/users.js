@@ -134,13 +134,45 @@ router.route('/signup')
     res.send('delete')
   })
 
-// 前端请求用户信息
-// router.route('/userInfo/:uuid')
+// 用户的登录状态
+router.route('/loginStatus')
+  .options(cors.corsWithOptions, (req, res) => {
+    res.sendStatus(200)
+  })
+  .get(cors.corsWithOptions, (req, res, next) => {
+    // console.log(req.user)
+    if (req.user) {
+      res.status(200).json({
+        result: true,
+        message: '已登录',
+        data: true
+      })
+    } else {
+      res.status(200).json({
+        result: false,
+        message: '未登录',
+        data: false
+      })
+    }
+  })
+  .post(cors.corsWithOptions, (req, res, next) => {
+    res.send(post)
+  })
+  .put(cors.corsWithOptions, (req, res, next) => {
+    res.send('put')
+  })
+  .delete(cors.corsWithOptions, (req, res, next) => {
+    res.send('delete')
+  })
+
+// 用户信息
 router.route('/userInfo')
   .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
   })
-  .get(cors.corsWithOptions, authenticate.isAuthenticated, (req, res, next) => {
+  .get(cors.corsWithOptions,
+    authenticate.isAuthenticated,
+    (req, res, next) => {
     if (req.user) {
       res.status(200).json({
         result: true,
@@ -155,11 +187,8 @@ router.route('/userInfo')
       })
     }
   })
-  // 接收用户属性
   .post(cors.corsWithOptions, (req, res, next) => {
-    // 检查mongodb里是否有uuid。
-    // 使用`·utils.getUuid()`生成一个key，其对应值为用户属性。保存在mongodb里。
-    res.send(true)
+    res.send(post)
   })
   .put(cors.corsWithOptions, (req, res, next) => {
     res.send('put')

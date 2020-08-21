@@ -412,5 +412,9 @@ let authfn = (msgObj) => {
   tokenSDKServer.send({type: 'finish', message: config.errorMap.personAuditFinish.message}, [pvdata.pendingTask.msgObj.content.businessLicenseData.applicantDid], 'auth')
 }
 
-tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: false, autoReceipt: true}) // 生产
-// tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: true, autoReceipt: false}) // 开发
+ // 生产
+tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: false, autoReceipt: true})
+
+ // 开发
+// tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: true, autoReceipt: false})
+
