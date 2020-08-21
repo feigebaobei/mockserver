@@ -387,11 +387,9 @@ let bindfn = (msgObj) => {
   }
 }
 
-// 授权
-let authfn = (msgObj) => {
-  // 因当下没有多种授权的内容、形式。所以没使用switch处理。
+let confirmResponsefn = (msgObj) => {
   // 检查参数是否正确
-  if (!msgObj.reqUserInfoKeys.opResult || !msgObj.reqUserInfoKeys.claim_sn) {
+  if (!msgObj.content.opResult || !msgObj.content.claim_sn) {
     tokenSDKServer.send({type: 'error', message: config.errorMap.arguments.message, error: new Error(config.errorMap.arguments.message)}, [msgObj.sender], 'auth')
   }
   // 检查是否为审核员
@@ -403,13 +401,25 @@ let authfn = (msgObj) => {
     tokenSDKServer.send({type: 'error', message: config.errorMap.existAuditor.message, error: new Error(config.errorMap.existAuditor.message)}, [msgObj.sender], 'auth')
   }
   // 设置人工审核的结果
-  let setResult =  tokenSDKServer.setPendingItemIsPersonCheck(msgObj.reqUserInfoKeys.claim_sn, msgObj.reqUserInfoKeys.opResult, msgObj.sender)
+  let setResult = tokenSDKServer.setPendingItemIsPersonCheck(msgObj.content.claim_sn, msgObj.content.opResult, msgObj.sender)
   // setResult: {error, result}
   if (!setResult.error) {
     tokenSDKServer.send({type: 'error', message: config.errorMap.setField.message, error: new Error(config.errorMap.setField.message)}, [msgObj.sender], 'auth')
   }
   // 发消息通过证书拥有者，人工审核的结果。
   tokenSDKServer.send({type: 'finish', message: config.errorMap.personAuditFinish.message}, [pvdata.pendingTask.msgObj.content.businessLicenseData.applicantDid], 'auth')
+}
+// 授权
+let authfn = (msgObj) => {
+  switch (msgObj.content.type) {
+    case 'confirmResponse':
+      confirmResponsefn(msgObj)
+      break
+    case 'confirmRequest':
+    default:
+      break
+  }
+  // 因当下没有多种授权的内容、形式。所以没使用switch处理。
 }
 
  // 生产

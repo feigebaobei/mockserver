@@ -729,9 +729,7 @@ router.route('/personCheck')
   .get(cors.corsWithOptions, (req, res, next) =>{
     res.send('get')
   })
-  // .post(cors.corsWithOptions, authenticate.isAuthenticated, (req, res, next) => {
   .post(cors.corsWithOptions, authenticate.isAuthenticated, (req, res, next) => {
-
     // 检查参数
     let {opResult, claim_sn} = req.body
     let auditor = req.user.token
@@ -744,26 +742,38 @@ router.route('/personCheck')
         error: new Error('参数错误')
       })
     }
-    // 处理pvdata.pendingTask
-    let checkResult = tokenSDKServer.setPendingItemIsPersonCheck(claim_sn, opResult, auditor)
-    // console.log(checkResult)
-    if (!checkResult.error) {
-      // 触发认证应用的处理待办事项的方法。
-      utils.opPendingTaskItem(claim_sn)
-      // 返回结果
-      res.status(200).json({
-        result: true,
-        message: '已处理',
-        data: checkResult.error
-      })
-    } else {
-      let msg = config.errorMap.setPendingItemIsPersonCheck.message
-      res.status(500).json({
-        result: false,
-        message: msg,
-        error: new Error(msg)
-      })
-    }
+    // 给审核员发消息
+    tokenSDKServer.send({
+      type: 'confirmRequest',
+      opResult: opResult,
+      claim_sn: claim_sn
+    }, [auditor], 'auth')
+    // 返回结果
+    res.status(200).json({
+      result: true,
+      message: '已给审核员发消息',
+      data: true
+    })
+    // // 处理pvdata.pendingTask
+    // // let checkResult = tokenSDKServer.setPendingItemIsPersonCheck(claim_sn, opResult, auditor)
+    // // console.log(checkResult)
+    // if (!checkResult.error) {
+    //   // 触发认证应用的处理待办事项的方法。
+    //   // utils.opPendingTaskItem(claim_sn)
+    //   // 返回结果
+    //   res.status(200).json({
+    //     result: true,
+    //     message: '已处理',
+    //     data: checkResult.error
+    //   })
+    // } else {
+    //   let msg = config.errorMap.setPendingItemIsPersonCheck.message
+    //   res.status(500).json({
+    //     result: false,
+    //     message: msg,
+    //     error: new Error(msg)
+    //   })
+    // }
   })
   .put(cors.corsWithOptions, (req, res, next) => {
     res.send('put')
