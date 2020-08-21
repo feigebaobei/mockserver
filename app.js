@@ -23,7 +23,7 @@ var auditRouter = require('./routes/audit.js')
 var schedule = require('./schedule.js')
 // var webSocket = require('./webSocket.js')
 // var webSocket = require('./ws2.js') // 测试用
-const authenticate = require('./authenticate.js')
+const authenticate = require('./lib/authenticate.js')
 const {mongoStore} = require('./mongoStore.js')
 var webSocket = require('./communicate.js')
 

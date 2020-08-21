@@ -11,7 +11,7 @@ const User = require('../models/user')
 const config = require('../lib/config')
 const mongodbUtils = require('../lib/mongodbUtils')
 const {mongoStore, getAllSession, getSessionBySid, setSession} = require('../mongoStore.js')
-
+const authenticate = require('../lib/authenticate')
 // router.use(bodyParser.urlencoded({extended: false}))
 router.use(bodyParser.json())
 
@@ -67,7 +67,7 @@ router.route('/login')
       res.status(200).json({
         result: true,
         message: 'login success',
-        data: true
+        data: req.user
       })
     }
   )
@@ -140,43 +140,12 @@ router.route('/userInfo')
   .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
   })
-  .get(cors.corsWithOptions, (req, res, next) => {
-    // 从mongodb里，根key取出用户属性。
-    // res.send('get')
-    // setTimeout(() => {
-    //   res.send({
-    //     name: 'tank',
-    //     avatar: 'https://ss1.bdstatic.com/70cFuXSh_Q1YnxGkpoWK1HF6hhy/it/u=1718143317,3612074652&fm=26&gp=0.jpg'
-    //   })
-    // }, 3000)
-
-    // let randNum = Math.floor(Math.random() * 3)
-    // let randNum = false
-    // // console.log(randNum)
-    // if (!randNum) {
-    //   res.status(200).json({
-    //     result: true,
-    //     data: {
-    //       // name: 'tank',
-    //       nickName: 'tank',
-    //       avatar: 'https://ss1.bdstatic.com/70cFuXSh_Q1YnxGkpoWK1HF6hhy/it/u=1718143317,3612074652&fm=26&gp=0.jpg',
-    //       udid: 'did:ttm:u0f49a0b95a5201b690bf0b79eb715dad9ae7815efe9800998ecf8427e8d74'
-    //     },
-    //     message: ''
-    //   })
-    // } else {
-    //   // res.send(false)
-    //   res.status(500).json({result: false, message: 'do not have userInfo', error: ''})
-    // }
-
-    // console.log(req.session)
-    // console.log(req.sessionID)
-    // console.log(req.user)
+  .get(cors.corsWithOptions, authenticate.isAuthenticated, (req, res, next) => {
     if (req.user) {
       res.status(200).json({
         result: true,
         message: '',
-        data: req.user.profile
+        data: req.user
       })
     } else {
       res.status(200).json({
@@ -271,13 +240,10 @@ router.route('/logout')
   .get(cors.corsWithOptions, (req, res, next) => {
     res.send('get')
   })
-  .post(cors.corsWithOptions, (req, res, next) => {
-    // console.log('2134567')
-    console.log(req.session)
-    console.log(req.user)
-    // if (req.session) {
-    //   req.logout()
-    // }
+  .post(cors.corsWithOptions, authenticate.isAuthenticated, (req, res, next) => {
+    req.logout()
+    // console.log(req.session)
+    // console.log(req.user)
     res.status(200).json({
       result: true,
       message: '',
@@ -342,7 +308,7 @@ router.route('/qrStr')
     res.sendStatus(200)
   })
   .get(cors.corsWithOptions, (req, res, next) => {
-    let expire = Date.now() + 60 * 1000
+    let expire = Date.now() + 60 * 1000 // * 24 * 60
     req.session.expireQrStr = expire
     res.status(200).json({
       result: true,

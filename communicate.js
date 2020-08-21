@@ -177,7 +177,7 @@ let businessLicensefn = (msgObj) => {
   // 验签
   let isok = tokenSDKServer.verify({sign: msgObj.content.sign})
   if (isok) {
-    console.log('isok', isok)
+    // console.log('isok', isok)
     // 是否已经签发，并在有效期内。
     tokenSDKServer.getCertifyFingerPrint(msgObj.content.businessLicenseData.claim_sn, true).then(response => {
       // console.log(response.data)
@@ -211,7 +211,7 @@ let businessLicensefn = (msgObj) => {
 
 // 绑定认证类的回调方法
 let confirmfn = (msgObj) => {
-  // console.log('msgObj', msgObj)
+  console.log('msgObj', msgObj)
   switch (msgObj.content.type) {
     case 'IDCardConfirm':
       idConfirmfn(msgObj)
@@ -224,6 +224,7 @@ let confirmfn = (msgObj) => {
   }
 }
 
+// 使用token的did登录
 let bindfn = (msgObj) => {
   console.log('bindfn', msgObj)
   let isok = tokenSDKServer.verify({sign: msgObj.content.sign})
@@ -237,15 +238,22 @@ let bindfn = (msgObj) => {
         template = null
     // sessionID有效性
     getSessionBySid(msgObj.content.sessionId).then(({error, result}) => {
+      // console.log(error, result)
       if (error) {
-        return Promise.reject({})
+        return Promise.reject({isError: true, payload: new Error(config.errorMap.selectSession.message)})
       } else {
-        return result
+        if (result) {
+          return result
+        } else {
+          return Promise.reject({isError: true, payload: new Error(config.errorMap.existSession.message)})
+        }
       }
     })
     // 检查qrStr的时间有效性
     .then(session => {
-      return true // 测试用
+      // return true // 测试用
+      // console.log('session',session)
+      // if (session)
       let now = Date.now()
       if (now > session.expireQrStr) {
         return Promise.reject({isError: true, payload: new Error(config.errorMap.qrStrTimeout.message)})
@@ -379,6 +387,7 @@ let bindfn = (msgObj) => {
   }
 }
 
+// 授权
 let authfn = (msgObj) => {
   // 因当下没有多种授权的内容、形式。所以没使用switch处理。
   // 检查参数是否正确
@@ -395,7 +404,8 @@ let authfn = (msgObj) => {
   }
   // 设置人工审核的结果
   let setResult =  tokenSDKServer.setPendingItemIsPersonCheck(msgObj.reqUserInfoKeys.claim_sn, msgObj.reqUserInfoKeys.opResult, msgObj.sender)
-  if (!setResult) {
+  // setResult: {error, result}
+  if (!setResult.error) {
     tokenSDKServer.send({type: 'error', message: config.errorMap.setField.message, error: new Error(config.errorMap.setField.message)}, [msgObj.sender], 'auth')
   }
   // 发消息通过证书拥有者，人工审核的结果。

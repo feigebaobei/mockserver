@@ -1,15 +1,17 @@
 var express = require('express');
 var router = express.Router();
-var utils = require('../lib/utils.js')
-var redisUtils = require('../lib/redisUtils.js')
-var cors = require('./cors')
-var config = require('../lib/config')
-var tokenSDKServer = require('token-sdk-server')
+const passport = require('passport')
 var fs = require('fs')
 const Base64 = require('js-base64').Base64
 var bodyParser = require('body-parser')
 var multer = require('multer')
 const md5 = require('md5')
+var tokenSDKServer = require('token-sdk-server')
+var utils = require('../lib/utils.js')
+var redisUtils = require('../lib/redisUtils.js')
+var cors = require('./cors')
+var config = require('../lib/config')
+const authenticate = require('../lib/authenticate')
 
 router.use(bodyParser.json({limit: '10240kb'}))
 // router.use(bodyParser.json({limit: '40kb'}))
@@ -727,75 +729,15 @@ router.route('/personCheck')
   .get(cors.corsWithOptions, (req, res, next) =>{
     res.send('get')
   })
-  .post(cors.corsWithOptions, (req, res, next) => {
-    // let {operator, claim_sn} = req.body
-    // let {didttm, idpwd} = require('../tokenSDKData/privateConfig.js')
-    // let priStr = JSON.parse(tokenSDKServer.decryptDidttm(didttm, idpwd).data).prikey
-    // let pvdata = {}
-    // tokenSDKServer.getPvData(didttm.did).then(response => {
-    //   if (response.data.result) {
-    //     pvdata = tokenSDKServer.decryptPvData(response.data.result.data, priStr)
-    //     pvdata = JSON.parse(pvdata)
-    //     let pendingTask = pvdata.pendingTask || {}
-    //     let claim = pendingTask[claim_sn]
-    //     if (claim) {
-    //       claim.isPersonCheck = operator
-    //       let pvdataCt = tokenSDKServer.encryptPvData(pvdata, priStr)
-    //       let key = '0x' + tokenSDKServer.hashKeccak256(didttm.did)
-    //       let type = 'pvdata'
-    //       let signObj = `update backup file${pvdataCt}for${didttm.did}with${key}type${type}`
-    //       let signData = tokenSDKServer.sign({keys: priStr, msg: signObj})
-    //       // let signStr = `0x${signMy.r.toString('hex')}${signMy.s.toString('hex')}00`
-    //       let signStr = `0x${signData.r.toString('hex')}${signData.s.toString('hex')}${String(signData.v).length >= 2 ? String(signData.v) : '0'+String(signData.v)}`
-    //       return tokenSDKServer.backupData(didttm.did, key, type, pvdataCt, signStr).then(response => {
-    //         if (response.data.result) {
-    //           // return res.status(200).json({
-    //           //   result: true,
-    //           //   message: '成功操作',
-    //           //   data: operator
-    //           // })
-    //           return true
-    //         } else {
-    //           return Promise.reject(new Error('服务端备份pvdata失败'))
-    //         }
-    //       })
-    //     } else {
-    //       return Promise.reject(new Error(`不存在${claim_sn}待完成事项`))
-    //     }
-    //   }
-    // })
-    // .then(bool => {
-    //   let pendingTask = pvdata.pendingTask
-    //   // 当前要处理的任务列表 pendingTask
-    //   utils.opPendingTask(pendingTask[claim_sn]).then(response => {
-    //     console.log(response)
-    //     if (response.status) {
-    //       res.status(200).json({
-    //         result: true,
-    //         message: 'adid签名成功',
-    //         data: ''
-    //       })
-    //     } else {
-    //       res.status(500).json({
-    //         result: false,
-    //         message: `adid签名失败。原因：${response.payload.message || ''}`,
-    //         error: response.payload
-    //       })
-    //     }
-    //   })
-    // })
-    // .catch(error => {
-    //   res.status(500).json({
-    //     result: false,
-    //     message: error.message,
-    //     error: error
-    //   })
-    // })
+  // .post(cors.corsWithOptions, authenticate.isAuthenticated, (req, res, next) => {
+  .post(cors.corsWithOptions, authenticate.isAuthenticated, (req, res, next) => {
 
     // 检查参数
-    let {operator, claim_sn, checker} = req.body
-    operator = !!operator
-    if (!claim_sn || !checker) {
+    let {opResult, claim_sn} = req.body
+    let auditor = req.user.token
+    console.log(req.user)
+    opResult = !!opResult
+    if (!claim_sn || !auditor) {
       return res.status(500).json({
         result: false,
         message: '参数错误',
@@ -803,18 +745,16 @@ router.route('/personCheck')
       })
     }
     // 处理pvdata.pendingTask
-    // let pvdata = tokenSDKServer.getPvData()
-    // pvdata = JSON.parse(pvdata)
-    // pvdata =
-    let checkResult = tokenSDKServer.setPendingItemIsPersonCheck(claim_sn)
-    if (checkResult) {
+    let checkResult = tokenSDKServer.setPendingItemIsPersonCheck(claim_sn, opResult, auditor)
+    // console.log(checkResult)
+    if (!checkResult.error) {
       // 触发认证应用的处理待办事项的方法。
       utils.opPendingTaskItem(claim_sn)
       // 返回结果
       res.status(200).json({
         result: true,
         message: '已处理',
-        data: checkResult
+        data: checkResult.error
       })
     } else {
       let msg = config.errorMap.setPendingItemIsPersonCheck.message
