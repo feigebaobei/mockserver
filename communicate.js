@@ -198,6 +198,7 @@ let businessLicensefn = (msgObj) => {
     })
     // 通知父did处理待办事项
     .catch(({isError, payload}) => {
+      // console.log(isError, payload)
       if (isError) {
         tokenSDKServer.send({type: 'error', message: payload.message, error: payload}, [msgObj.sender], 'confirm')
       } else {
@@ -397,7 +398,10 @@ let bindfn = (msgObj) => {
 
 let confirmResponsefn = (msgObj) => {
   // 检查参数是否正确
-  if (!msgObj.content.opResult || !msgObj.content.claim_sn) {
+  // if (!msgObj.content.opResult || !msgObj.content.claim_sn) {
+  //   tokenSDKServer.send({type: 'error', message: config.errorMap.arguments.message, error: new Error(config.errorMap.arguments.message)}, [msgObj.sender], 'auth')
+  // }
+  if (!msgObj.content.pendingTaskId || !msgObj.content.operateResult) {
     tokenSDKServer.send({type: 'error', message: config.errorMap.arguments.message, error: new Error(config.errorMap.arguments.message)}, [msgObj.sender], 'auth')
   }
   // 检查是否为审核员
@@ -410,7 +414,7 @@ let confirmResponsefn = (msgObj) => {
     tokenSDKServer.send({type: 'error', message: config.errorMap.existAuditor.message, error: new Error(config.errorMap.existAuditor.message)}, [msgObj.sender], 'auth')
   }
   // 审核员是否同意该操作
-  if (msgObj.content.status !== 200) {
+  if (msgObj.content.status !== 200) { // 200 表示同意， 400 表示不同意
     tokenSDKServer.send({type: 'finish', message: config.errorMap.auditorDisagree.message}, [msgObj.sender], 'auth')
     return
   } else {
@@ -418,13 +422,19 @@ let confirmResponsefn = (msgObj) => {
     let isok = tokenSDKServer.verify({sign: msgObj.content.sign})
     if (isok) {
       // 设置人工审核的结果
-      let setResult = tokenSDKServer.setPendingItemIsPersonCheck(msgObj.content.claim_sn, msgObj.content.opResult, msgObj.sender)
+      // let setResult = tokenSDKServer.setPendingItemIsPersonCheck(msgObj.content.claim_sn, msgObj.content.opResult, msgObj.sender)
+      let setResult = tokenSDKServer.setPendingItemIsPersonCheck(msgObj.content.pendingTaskId, msgObj.content.operateResult, msgObj.sender)
       // setResult: {error, result}
       if (!setResult.error) {
         tokenSDKServer.send({type: 'error', message: config.errorMap.setField.message, error: new Error(config.errorMap.setField.message)}, [msgObj.sender], 'auth')
       }
       // 发消息给证书拥有者，人工审核的结果。
-      tokenSDKServer.send({type: 'finish', message: config.errorMap.personAuditFinish.message}, [pvdata.pendingTask.msgObj.content.businessLicenseData.applicantDid], 'auth')
+      tokenSDKServer.send({
+        type: 'finish',
+        message: config.errorMap.personAuditFinish.message},
+        // [pvdata.pendingTask[].msgObj.content.businessLicenseData.applicantDid],
+        [msgObj.sender],
+        'auth')
     } else {
       tokenSDKServer.send({type: 'error', message: config.errorMap.verify.message}, [msgObj.sender], 'auth')
     }
