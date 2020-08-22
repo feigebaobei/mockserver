@@ -403,7 +403,7 @@ let confirmResponsefn = (msgObj) => {
   // 检查是否为审核员
   let pvdataStr = tokenSDKServer.getPvData()
   let pvdata = JSON.parse(pvdataStr)
-  let auditor = pvdata.contents.auditor || []
+  let auditor = pvdata.contacts.auditor || []
   let exist = auditor.some(item => item === msgObj.sender)
   exist = true // 开发阶段使用
   if (!exist) {
