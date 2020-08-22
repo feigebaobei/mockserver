@@ -758,7 +758,9 @@ router.route('/personCheck')
         {businessLicenseId: claim_sn},
         {operateResult: opResult},
         {orgName: claim.msgObj.content.businessLicenseData.ocrData.name}
-      ]
+      ],
+      claim_sn: '',
+      claimData: {}
     }, [auditor], 'auth')
     // 返回结果
     res.status(200).json({
