@@ -170,25 +170,15 @@ router.route('/userInfo')
   .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
   })
-  .get(cors.corsWithOptions,
-    authenticate.isAuthenticated,
-    (req, res, next) => {
-    if (req.user) {
+  .get(cors.corsWithOptions, authenticate.isAuthenticated, (req, res, next) => {
       res.status(200).json({
         result: true,
         message: '',
         data: req.user
       })
-    } else {
-      res.status(200).json({
-        result: false,
-        message: '',
-        data: ''
-      })
-    }
   })
   .post(cors.corsWithOptions, (req, res, next) => {
-    res.send(post)
+    res.send('post')
   })
   .put(cors.corsWithOptions, (req, res, next) => {
     res.send('put')
@@ -342,7 +332,7 @@ router.route('/qrStr')
     res.status(200).json({
       result: true,
       message: '',
-      data: tokenSDKServer.genBindQrStr(['name'], 'N', req.sessionID, '登录认证应用', expire)
+      data: tokenSDKServer.genBindQrStr(['name', 'gender'], 'N', req.sessionID, '登录认证应用', expire)
     })
   })
   .post(cors.corsWithOptions, (req, res, next) => {
