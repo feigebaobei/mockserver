@@ -17,8 +17,8 @@ let priStr = JSON.parse(tokenSDKServer.decryptDidttm(didttm, idpwd).data).prikey
 // }, 5000)
 
 
-var j = schedule.scheduleJob('* */29 * * * *', () => {
-  // console.log('schedule')
+var j = schedule.scheduleJob('0 */1 * * * *', () => {
+  console.log('schedule')
   // tokenSDKServer.getPvData(didttm.did).then(response => {
   // tokenSDKServer.getPvData().then(response => {
   //   if (response.data.result) {
