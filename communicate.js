@@ -211,7 +211,14 @@ let businessLicensefn = (msgObj) => {
 
 // 绑定认证类的回调方法
 let confirmfn = (msgObj) => {
-  console.log('msgObj', msgObj)
+  console.log('confirmfn', msgObj)
+  if (!msgObj.content) {
+    tokenSDKServer.send({type: 'error', message: config.errorMap.contentType.message}, [msgObj.sender], 'auth')
+    return
+  } else if (!msgObj.content.type) {
+    tokenSDKServer.send({type: 'error', message: config.errorMap.contentType.message}, [msgObj.sender], 'auth')
+    return
+  }
   switch (msgObj.content.type) {
     case 'IDCardConfirm':
       idConfirmfn(msgObj)
@@ -425,6 +432,14 @@ let confirmResponsefn = (msgObj) => {
 }
 // 授权
 let authfn = (msgObj) => {
+  console.log('authfn', msgObj)
+  if (!msgObj.content) {
+    tokenSDKServer.send({type: 'error', message: config.errorMap.contentType.message}, [msgObj.sender], 'auth')
+    return
+  } else if (!msgObj.content.type) {
+    tokenSDKServer.send({type: 'error', message: config.errorMap.contentType.message}, [msgObj.sender], 'auth')
+    return
+  }
   switch (msgObj.content.type) {
     case 'confirmResponse':
       confirmResponsefn(msgObj)
