@@ -733,7 +733,7 @@ router.route('/personCheck')
     // 检查参数
     let {opResult, claim_sn} = req.body
     let auditor = req.user.token
-    console.log(req.user)
+    // console.log(req.user)
     opResult = !!opResult
     if (!claim_sn || !auditor) {
       return res.status(500).json({
@@ -742,11 +742,23 @@ router.route('/personCheck')
         error: new Error('参数错误')
       })
     }
+    let pvdataStr = tokenSDKServer.getPvData()
+    let pvdata = JSON.parse(pvdataStr)
+    let claim = pvdata.pendingTask[claim_sn] || {}
+
     // 给审核员发消息
     tokenSDKServer.send({
       type: 'confirmRequest',
-      opResult: opResult,
-      claim_sn: claim_sn
+      // opResult: opResult,
+      // claim_sn: claim_sn
+      title: '需要您确认',
+      describe: '您已经对营业执照（$orgName$）审核为：$operateResult$。请您确认。',
+      pendingTaskId: claim_sn, // 后期需要修改
+      descData: [
+        {businessLicenseId: claim_sn},
+        {operateResult: opResult},
+        {orgName: claim.msgObj.content.businessLicenseData.ocrData.name}
+      ]
     }, [auditor], 'auth')
     // 返回结果
     res.status(200).json({
