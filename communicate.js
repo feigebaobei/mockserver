@@ -13,7 +13,7 @@ const priStr = tokenSDKServer.getPriStr()
 
 // 认证身份证
 let idConfirmfn = (msgObj) => {
-  // console.log('idConfirmfn', JSON.stringify(msgObj))
+  console.log('idConfirmfn', JSON.stringify(msgObj))
   // 验签
   let isok = tokenSDKServer.verify({sign: msgObj.content.sign})
   if (isok) {
@@ -113,7 +113,7 @@ let idConfirmfn = (msgObj) => {
           '认证应用签名',
           new Date().setFullYear(2120)
         ).then(response => {
-          if (response.data.result) {
+          if (response.result) {
             return true
           } else {
             return Promise.reject({isError: true, payload: new Error(config.errorMap.sign.message)})
