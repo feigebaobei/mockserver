@@ -51,7 +51,7 @@ let idConfirmfn = (msgObj) => {
     // 比对hashValue
     .then(bool => {
       return tokenSDKServer.checkHashValue(msgObj.content.idCardDataBean.claim_sn, msgObj.content.idCardDataBean.templateId, msgObj.content.idCardDataBean.ocrData, {templateData: true, claimData: true}).then(response => {
-        console.log('response', response)
+        // console.log('response', response)
         if (!response.result) {
           return Promise.reject({isError: true, payload: new Error(config.errorMap.claimFingerPrint.message)})
         } else {
@@ -149,7 +149,7 @@ let idConfirmfn = (msgObj) => {
     })
     // 反馈给请求方
     .catch(({isError, payload}) => {
-      // console.log(isError, payload)
+      console.log(isError, payload)
       if (isError) {
         tokenSDKServer.send({type: 'error', message: payload.message, error: payload}, [msgObj.sender], 'confirm')
       }
@@ -177,7 +177,7 @@ let businessLicensefn = (msgObj) => {
   // 验签
   let isok = tokenSDKServer.verify({sign: msgObj.content.sign})
   if (isok) {
-    // console.log('isok', isok)
+    console.log('isok', isok)
     // 是否已经签发，并在有效期内。
     tokenSDKServer.getCertifyFingerPrint(msgObj.content.businessLicenseData.claim_sn, true).then(response => {
       // console.log(response.data)
@@ -198,7 +198,7 @@ let businessLicensefn = (msgObj) => {
     })
     // 通知父did处理待办事项
     .catch(({isError, payload}) => {
-      // console.log(isError, payload)
+      console.log(isError, payload)
       if (isError) {
         tokenSDKServer.send({type: 'error', message: payload.message, error: payload}, [msgObj.sender], 'confirm')
       } else {
@@ -219,17 +219,24 @@ let confirmfn = (msgObj) => {
   } else if (!msgObj.content.type) {
     tokenSDKServer.send({type: 'error', message: config.errorMap.contentType.message}, [msgObj.sender], 'auth')
     return
-  }
-  switch (msgObj.content.type) {
-    case 'IDCardConfirm':
-      idConfirmfn(msgObj)
-      break
-    case 'businessLicenseConfirm':
-      businessLicensefn(msgObj)
-      break
-    default:
-      tokenSDKServer.send({type: 'error', message: config.errorMap.contentType.message}, [msgObj.sender], 'auth')
-      break
+  } else {
+    new Promise((r, j) => {
+      setTimeout(function () {
+        r()
+      }, 5 * 1000)
+    }).then(() => {
+      switch (msgObj.content.type) {
+        case 'IDCardConfirm':
+          idConfirmfn(msgObj)
+          break
+        case 'businessLicenseConfirm':
+          businessLicensefn(msgObj)
+          break
+        default:
+          tokenSDKServer.send({type: 'error', message: config.errorMap.contentType.message}, [msgObj.sender], 'auth')
+          break
+      }
+    })
   }
 }
 
