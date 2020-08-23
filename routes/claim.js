@@ -692,7 +692,7 @@ router.route('/pendingTask')
   .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
   })
-  .get(cors.corsWithOptions, (req, res, next) =>{
+  .get(cors.corsWithOptions, authenticate.isAuthenticated, (req, res, next) =>{
     let claim_sn = req.query.claim_sn
     let pvdata = tokenSDKServer.getPvData()
     pvdata = JSON.parse(pvdata)
