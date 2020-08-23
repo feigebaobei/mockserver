@@ -129,7 +129,7 @@ let idConfirmfn = (msgObj) => {
       utils.setEmptyProperty(certifies, 'owner', [])
       utils.setEmptyProperty(certifies, 'confirmed', [])
       utils.setEmptyProperty(certifies, 'ectype', [])
-      certifies.owner.push({
+      certifies.confirmed.push({
         id: msgObj.content.idCardDataBean.claim_sn,
         templateId: msgObj.content.idCardDataBean.templateId,
         templateTitle: template.title,
@@ -145,13 +145,13 @@ let idConfirmfn = (msgObj) => {
       // 反馈给请求方
       tokenSDKServer.send({type: 'finish'}, [msgObj.sender], 'confirm')
     })
-    .catch((eo) => {
-      console.log('eo', eo)
-      return Promise.reject(eo)
-    })
+    // .catch((eo) => {
+    //   console.log('eo', eo)
+    //   return Promise.reject(eo)
+    // })
     // 反馈给请求方
     .catch(({isError, payload}) => {
-      console.log(isError, payload)
+      // console.log(isError, payload)
       if (isError) {
         tokenSDKServer.send({type: 'error', message: payload.message, error: payload}, [msgObj.sender], 'confirm')
       }
