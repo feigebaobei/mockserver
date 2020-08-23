@@ -747,10 +747,23 @@ router.route('/personCheck')
     let claim = pvdata.pendingTask[claim_sn] || {}
 
     // 给审核员发消息
-    tokenSDKServer.send({
+    // tokenSDKServer.send({
+    //   type: 'confirmRequest',
+    //   // opResult: opResult,
+    //   // claim_sn: claim_sn
+    //   title: '需要您确认',
+    //   describe: '您已经对营业执照（$orgName$）审核为：$operateResult$。请您确认。',
+    //   pendingTaskId: claim_sn, // 后期需要修改
+    //   descData: [
+    //     {businessLicenseId: claim_sn},
+    //     {operateResult: opResult},
+    //     {orgName: claim.msgObj.content.businessLicenseData.ocrData.name}
+    //   ],
+    //   claim_sn: '',
+    //   claimData: {}
+    // }, [auditor], 'auth')
+    let obj = {
       type: 'confirmRequest',
-      // opResult: opResult,
-      // claim_sn: claim_sn
       title: '需要您确认',
       describe: '您已经对营业执照（$orgName$）审核为：$operateResult$。请您确认。',
       pendingTaskId: claim_sn, // 后期需要修改
@@ -761,33 +774,15 @@ router.route('/personCheck')
       ],
       claim_sn: '',
       claimData: {}
-    }, [auditor], 'auth')
+    }
+    // console.log(obj, auditor)
+    tokenSDKServer.send(obj, [auditor], 'auth')
     // 返回结果
     res.status(200).json({
       result: true,
       message: '已给审核员发消息',
       data: true
     })
-    // // 处理pvdata.pendingTask
-    // // let checkResult = tokenSDKServer.setPendingItemIsPersonCheck(claim_sn, opResult, auditor)
-    // // console.log(checkResult)
-    // if (!checkResult.error) {
-    //   // 触发认证应用的处理待办事项的方法。
-    //   // utils.opPendingTaskItem(claim_sn)
-    //   // 返回结果
-    //   res.status(200).json({
-    //     result: true,
-    //     message: '已处理',
-    //     data: checkResult.error
-    //   })
-    // } else {
-    //   let msg = config.errorMap.setPendingItemIsPersonCheck.message
-    //   res.status(500).json({
-    //     result: false,
-    //     message: msg,
-    //     error: new Error(msg)
-    //   })
-    // }
   })
   .put(cors.corsWithOptions, (req, res, next) => {
     res.send('put')

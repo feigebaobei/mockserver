@@ -27,8 +27,8 @@ router.route('/test')
     // console.log(pvdata)
     let pendingTask = pvdata.pendingTask ? pvdata.pendingTask : {}
     for (let key of Object.keys(pendingTask)) {
-      utils.opPendingTaskItem(key, pendingTask[key])
-      // utils.opPendingTaskItem(key)
+      // utils.opPendingTaskItem(key, pendingTask[key])
+      utils.opPendingTaskItem(key)
     }
     res.status(200).json({
       result: true,

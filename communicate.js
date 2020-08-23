@@ -434,7 +434,7 @@ let confirmResponsefn = (msgObj) => {
       // let setResult = tokenSDKServer.setPendingItemIsPersonCheck(msgObj.content.claim_sn, msgObj.content.opResult, msgObj.sender)
       let setResult = tokenSDKServer.setPendingItemIsPersonCheck(msgObj.content.pendingTaskId, msgObj.content.operateResult, msgObj.sender)
       // setResult: {error, result}
-      if (!setResult.error) {
+      if (setResult.error) {
         tokenSDKServer.send({type: 'error', message: config.errorMap.setField.message, error: new Error(config.errorMap.setField.message)}, [msgObj.sender], 'auth')
       }
       // 发消息给证书拥有者，人工审核的结果。
