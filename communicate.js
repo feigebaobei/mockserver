@@ -108,17 +108,11 @@ let idConfirmfn = (msgObj) => {
         // console.log('signData', signData)
         let signStr = `0x${signData.r.toString('hex')}${signData.s.toString('hex')}${String(signData.v).length >= 2 ? String(signData.v) : '0'+String(signData.v)}`
         // console.log('signStr', signStr)
-        // return tokenSDKServer.signCertify(didttm.did, msgObj.content.idCardDataBean.claim_sn, name, msgObj.content.idCardDataBean.templateId, hashValue, explain, expire, signData).then(response => {
         return tokenSDKServer.signCertify(
-          didttm.did,
           msgObj.content.idCardDataBean.claim_sn,
-          name,
-          msgObj.content.idCardDataBean.templateId,
-          hashValue,
-          explain,
-          expire,
-          signStr).then(response => {
-          // console.log('response.data', response.data)
+          '认证应用签名',
+          new Date().setFullYear(2120)
+        ).then(response => {
           if (response.data.result) {
             return true
           } else {
@@ -146,6 +140,10 @@ let idConfirmfn = (msgObj) => {
       fs.writeFileSync('./tokenSDKData/pvdataCt.txt', pvdataCt)
       // 反馈给请求方
       tokenSDKServer.send({type: 'finish'}, [msgObj.sender], 'confirm')
+    })
+    .catch((eo) => {
+      console.log('eo', eo)
+      return Promise.reject(eo)
     })
     // 反馈给请求方
     .catch(({isError, payload}) => {
@@ -223,7 +221,7 @@ let confirmfn = (msgObj) => {
     new Promise((r, j) => {
       setTimeout(function () {
         r()
-      }, 5 * 1000)
+      }, 10 * 1000)
     }).then(() => {
       switch (msgObj.content.type) {
         case 'IDCardConfirm':
