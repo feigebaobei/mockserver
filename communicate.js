@@ -125,7 +125,10 @@ let idConfirmfn = (msgObj) => {
     .then(bool => {
       let pvdataCt = tokenSDKServer.getPvData()
       let pvdata = JSON.parse(pvdataCt)
-      let certifies = pvdata.certifies ? pvdata.certifies : {own: [], confirmed: [], ectype: []}
+      let certifies = pvdata.certifies ? pvdata.certifies : {} // {owner: [], confirmed: [], ectype: []}
+      utils.setEmptyProperty(certifies, 'owner', [])
+      utils.setEmptyProperty(certifies, 'confirmed', [])
+      utils.setEmptyProperty(certifies, 'ectype', [])
       certifies.owner.push({
         id: msgObj.content.idCardDataBean.claim_sn,
         templateId: msgObj.content.idCardDataBean.templateId,
@@ -136,6 +139,7 @@ let idConfirmfn = (msgObj) => {
         members: msgObj.content.idCardDataBean.members,
         keys:  msgObj.content.idCardDataBean.ocrData
       })
+      pvdata.certifies = certifies
       pvdataCt = tokenSDKServer.encryptPvData(pvdata, priStr)
       fs.writeFileSync('./tokenSDKData/pvdataCt.txt', pvdataCt)
       // 反馈给请求方
