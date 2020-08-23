@@ -59,7 +59,7 @@ router.route('/login')
     // passport.authenticate('local', (err, user, msgObj, d) => {
     //   console.log(err, user, msgObj, d)
     // }),
-    passport.authenticate('local'),
+    // passport.authenticate('local'),
     (req, res, next) => {
       // console.log('body', req.body)
       // console.log('body', req.session)
