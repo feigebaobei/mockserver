@@ -24,7 +24,6 @@ router.route('/test')
   .get(cors.corsWithOptions, (req, res, next) =>{
     let pvdata = tokenSDKServer.getPvData()
     pvdata = JSON.parse(pvdata)
-    // console.log(pvdata)
     let pendingTask = pvdata.pendingTask ? pvdata.pendingTask : {}
     for (let key of Object.keys(pendingTask)) {
       // utils.opPendingTaskItem(key, pendingTask[key])
@@ -63,19 +62,30 @@ router.route('/pvdata')
     })
   })
   .post(cors.corsWithOptions, (req, res, next) => {
-    let {backup} = req.body
+    let {backup, local} = req.body
+    // let pvdata = {
+    //     "did": didttm.did,
+    //     "property": {
+    //         "nickname": didttm.nickname
+    //     },
+    //     "superDid": "did:ttm:u05d41330c253b46bd79983c019f9f93477eda305b0f618b7c57401748bde2",
+    //     "certifies": {},
+    //     "pendingTask": {},
+    //     contacts: {
+    //       administrator: ['did:ttm:u055806a0396f78a19cc350f7e6869b939677751ab2b84938f26f024cf8854'],
+    //       auditor: ['did:ttm:u055806a0396f78a19cc350f7e6869b939677751ab2b84938f26f024cf8854']
+    //     }
+    // }
     let pvdata = {
-        "did": didttm.did,
-        "property": {
-            "nickname": "plainadid"
-        },
-        "superDid": "did:ttm:u05d41330c253b46bd79983c019f9f93477eda305b0f618b7c57401748bde2",
-        "certifies": {},
-        "pendingTask": {},
-        contacts: {
-          administrator: ['did:ttm:u055806a0396f78a19cc350f7e6869b939677751ab2b84938f26f024cf8854'],
-          auditor: ['did:ttm:u055806a0396f78a19cc350f7e6869b939677751ab2b84938f26f024cf8854']
-        }
+      "certifies":{},
+      "custom":{},
+      "did":"did:ttm:a0d931d76818589a79f63bd2576d867bf45bd6464be9800998ecf8427e8344",
+      "didMap":[],
+      "manageDids":[],
+      "origin":"did:ttm:u042ec31e277bd08ce9d9044519e3a745b7ba3da030f618b7c57401748b976",
+      "property":{
+        "nickname":"adid"
+      }
     }
     // console.log('pvdata', pvdata)
     let pvdataCt = tokenSDKServer.encryptPvData(pvdata, priStr)
@@ -96,6 +106,7 @@ router.route('/pvdata')
           data: response.data
         })
       })
+      tokenSDKServer.setPvData(pvdataCt)
     } else {
       res.status(200).json({
         result: true,

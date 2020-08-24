@@ -376,7 +376,7 @@ let bindfn = (msgObj) => {
       //     return
       //   }
       // })
-      return User.findOneAndUpdate({token: msgObj.content.bindInfo.client}, {$inc: {loginTime: 1}}, {new: true, upsert: true}).exec().then(user => {
+      return User.findOneAndUpdate({token: msgObj.content.bindInfo.client}, {$inc: {loginTime: 1}, profile: {name: msgObj.content.userInfo.name, gender: msgObj.content.userInfo.gender, picture: msgObj.content.userInfo.picture || ''}}, {new: true, upsert: true}).exec().then(user => {
         console.log('user', user)
         return user
       })
@@ -484,6 +484,7 @@ let authfn = (msgObj) => {
 
  // 生产
 tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: false, autoReceipt: true})
+// tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: true, autoReceipt: true})
 // tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: false, autoReceipt: false})
 
  // 开发
