@@ -10,7 +10,7 @@ const redisUtils = require('../lib/redisUtils.js')
 const User = require('../models/user')
 const config = require('../lib/config')
 const mongodbUtils = require('../lib/mongodbUtils')
-const {mongoStore, getAllSession, getSessionBySid, setSession} = require('../mongoStore.js')
+const {mongoStore, getAllSession, getSessionBySid, setSession} = require('../lib/mongoStore.js')
 const authenticate = require('../lib/authenticate')
 // router.use(bodyParser.urlencoded({extended: false}))
 router.use(bodyParser.json())
@@ -171,11 +171,11 @@ router.route('/userInfo')
     res.sendStatus(200)
   })
   .get(cors.corsWithOptions, authenticate.isAuthenticated, (req, res, next) => {
-      res.status(200).json({
-        result: true,
-        message: '',
-        data: req.user
-      })
+    res.status(200).json({
+      result: true,
+      message: '',
+      data: req.user
+    })
   })
   .post(cors.corsWithOptions, (req, res, next) => {
     res.send('post')

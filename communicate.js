@@ -5,7 +5,7 @@ const mongodbUtils = require('./lib/mongodbUtils')
 // const wsc = require('ws')
 const config = require('./lib/config.js')
 const utils = require('./lib/utils.js')
-const {mongoStore, getAllSession, getSessionBySid, setSession} = require('./mongoStore.js')
+const {mongoStore, getAllSession, getSessionBySid, setSession} = require('./lib/mongoStore.js')
 
 const {didttm, idpwd} = tokenSDKServer.getPrivateConfig()
 const priStr = tokenSDKServer.getPriStr()
@@ -344,30 +344,41 @@ let bindfn = (msgObj) => {
     // 此时证书上的签名已经有效了。
     .then(bool => {
       // 登录
-      return User.findOne({token: msgObj.content.bindInfo.client}).exec().then(user => {
-        // console.log('login', user)
-        // return true
-        if (!user) {
-          // return Promise.reject({isError: false, payload: null}) // 用户表里没用该用户，需要注册。
-          let obj = {
-            token: msgObj.content.bindInfo.client,
-            profile: {}
-          }
-          for (let [key, value] of Object.entries(msgObj.content.userInfo)) {
-            obj.profile[key] = value
-          }
-          let user = new User(obj)
-          return mongodbUtils.save(user).then(({error, result}) => {
-            // console.log('亲爱', error, result)
-            if (error) {
-              return Promise.reject({isError: true, payload: new Error(config.errorMap.saveFail.message)})
-            } else {
-              return result
-            }
-          })
-        } else {
-          return user
-        }
+      // 是否存在该用户
+      // return User.findOne({token: msgObj.content.bindInfo.client}).exec().then(user => {
+      //   // console.log('login', user)
+      //   // return true
+      //   if (!user) {
+      //     // 若不存在则创建新用户
+      //     // return Promise.reject({isError: false, payload: null}) // 用户表里没用该用户，需要注册。
+      //     let obj = {
+      //       token: msgObj.content.bindInfo.client,
+      //       profile: {}
+      //     }
+      //     for (let [key, value] of Object.entries(msgObj.content.userInfo)) {
+      //       obj.profile[key] = value
+      //     }
+      //     let user = new User(obj)
+      //     return mongodbUtils.save(user).then(({error, result}) => {
+      //       // console.log('亲爱', error, result)
+      //       if (error) {
+      //         return Promise.reject({isError: true, payload: new Error(config.errorMap.saveFail.message)})
+      //       } else {
+      //         return result
+      //       }
+      //     })
+      //   } else {
+      //     // 若存在则创建新用户
+      //     // return user
+      //     // User.findOneAndUpdate({token: msgObj.content.bindInfo.client}, {$inc: {loginItme: 1}}, {new: true, upsert: true}).exec().then(response => {
+
+      //     // })
+      //     return
+      //   }
+      // })
+      return User.findOneAndUpdate({token: msgObj.content.bindInfo.client}, {$inc: {loginTime: 1}}, {new: true, upsert: true}).exec().then(user => {
+        console.log('user', user)
+        return user
       })
     })
     // 修改session

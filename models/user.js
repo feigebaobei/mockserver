@@ -35,6 +35,10 @@ var User = new Schema({
     type: Boolean,
     default: false
   },
+  loginTime: {
+    type: Number,
+    default: 0
+  },
   profile: {
     name: {
       type: String,

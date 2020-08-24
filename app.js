@@ -24,7 +24,7 @@ var schedule = require('./schedule.js')
 // var webSocket = require('./webSocket.js')
 // var webSocket = require('./ws2.js') // 测试用
 const authenticate = require('./lib/authenticate.js')
-const {mongoStore} = require('./mongoStore.js')
+const {mongoStore} = require('./lib/mongoStore.js')
 var webSocket = require('./communicate.js')
 
 // 连接数据库 redis
