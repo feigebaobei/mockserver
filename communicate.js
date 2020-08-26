@@ -50,13 +50,13 @@ let idConfirmfn = (msgObj) => {
     })
     // 比对hashValue
     .then(bool => {
-      return tokenSDKServer.checkHashValue(msgObj.content.idCardDataBean.claim_sn, msgObj.content.idCardDataBean.templateId, msgObj.content.idCardDataBean.ocrData, {templateData: true, claimData: true}).then(response => {
-        // console.log('response', response)
-        if (!response.result) {
+      return tokenSDKServer.checkHashValue(msgObj.content.idCardDataBean.claim_sn, msgObj.content.idCardDataBean.templateId, msgObj.content.idCardDataBean.ocrData, {templateData: true, claimData: true})
+      .then((error, result) => {
+        if (error) {
           return Promise.reject({isError: true, payload: new Error(config.errorMap.claimFingerPrint.message)})
         } else {
-          hashValue = response.hashValueChain
-          template = response.templateData
+          hashValue = result.hashValueChain
+          template = result.templateData
           return true
         }
       })
@@ -230,7 +230,10 @@ let adidRandomCodeRequestfn = (msgObj) => {
     if (Date.now() - pvdata.createTime > config.timeInterval.adidReqRandomCode) {
       // 在pendingTask里添加待办项
       let rc = utils.genRandomCodeArr(128)
-      tokenSDKServer.addPendingTask(msgObj, msgObj.content.type, {randomCode: rc})
+      // msgObj.content.type = applicationCertificateConfirm
+      // sdk里的类使用的是 adidIdentityConfirm
+      // 所以不使用msgObj.content.type
+      tokenSDKServer.addPendingTask(msgObj, 'adidIdentityConfirm', {randomCode: rc})
       // 发消息
       tokenSDKServer.send({type: 'adidRandomCode', randomCode: rc, claim_sn: msgObj.content.applicationCertificateDataBean.claim_sn}, [msgObj.sender], confirm)
     } else {
@@ -263,7 +266,7 @@ let confirmfn = (msgObj) => {
         case 'businessLicenseConfirm':
           businessLicensefn(msgObj)
           break
-        case 'adidRandomCodeRequest':
+        case 'applicationCertificateConfirm':
           adidRandomCodeRequestfn(msgObj)
           break
         default:
@@ -352,9 +355,9 @@ let bindfn = (msgObj) => {
         return true
       } else {
         // 比对hashValue
-        return tokenSDKServer.checkHashValue(claim_sn, template.template_id, msgObj.content.bindInfo).then(response => {
+        return tokenSDKServer.checkHashValue(claim_sn, template.template_id, msgObj.content.bindInfo).then(({error, result}) => {
           // console.log('1234567u', response)
-          if (response.result) {
+          if (!error) {
             return true
           } else {
             return Promise.reject({isError: true, payload: new Error(config.errorMap.claimFingerPrint.message)})
