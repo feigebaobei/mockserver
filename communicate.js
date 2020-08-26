@@ -260,12 +260,15 @@ let confirmfn = (msgObj) => {
       }, 10 * 1000)
     }).then(() => {
       switch (msgObj.content.type) {
+        // udid的身份证明类证书
         case 'IDCardConfirm':
           idConfirmfn(msgObj)
           break
+        // 营业执照证书
         case 'businessLicenseConfirm':
           businessLicensefn(msgObj)
           break
+        // adid的身份证明类证书
         case 'applicationCertificateConfirm':
           adidRandomCodeRequestfn(msgObj)
           break
