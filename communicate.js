@@ -417,13 +417,6 @@ let bindfn = (msgObj) => {
 }
 
 let confirmResponsefn = (msgObj) => {
-  // 检查参数是否正确
-  // if (!msgObj.content.opResult || !msgObj.content.claim_sn) {
-  //   tokenSDKServer.send({type: 'error', message: config.errorMap.arguments.message, error: new Error(config.errorMap.arguments.message)}, [msgObj.sender], 'auth')
-  // }
-  if (!msgObj.content.pendingTaskId || !msgObj.content.operateResult) {
-    tokenSDKServer.send({type: 'error', message: config.errorMap.arguments.message, error: new Error(config.errorMap.arguments.message)}, [msgObj.sender], 'auth')
-  }
   // 检查是否为审核员
   let pvdataStr = tokenSDKServer.getPvData()
   let pvdata = JSON.parse(pvdataStr)
@@ -432,6 +425,12 @@ let confirmResponsefn = (msgObj) => {
   exist = true // 开发阶段使用
   if (!exist) {
     tokenSDKServer.send({type: 'error', message: config.errorMap.existAuditor.message, error: new Error(config.errorMap.existAuditor.message)}, [msgObj.sender], 'auth')
+    return
+  }
+  // 检查参数是否正确
+  if (!msgObj.content.pendingTaskId || !msgObj.content.operateResult) {
+    tokenSDKServer.send({type: 'error', message: config.errorMap.arguments.message, error: new Error(config.errorMap.arguments.message)}, [msgObj.sender], 'auth')
+    return
   }
   // 审核员是否同意该操作
   if (msgObj.content.status !== 200) { // 200 表示同意， 400 表示不同意

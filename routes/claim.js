@@ -745,30 +745,14 @@ router.route('/personCheck')
     let pvdataStr = tokenSDKServer.getPvData()
     let pvdata = JSON.parse(pvdataStr)
     let claim = pvdata.pendingTask[claim_sn] || {}
-
-    // 给审核员发消息
-    // tokenSDKServer.send({
-    //   type: 'confirmRequest',
-    //   // opResult: opResult,
-    //   // claim_sn: claim_sn
-    //   title: '需要您确认',
-    //   describe: '您已经对营业执照（$orgName$）审核为：$operateResult$。请您确认。',
-    //   pendingTaskId: claim_sn, // 后期需要修改
-    //   descData: [
-    //     {businessLicenseId: claim_sn},
-    //     {operateResult: opResult},
-    //     {orgName: claim.msgObj.content.businessLicenseData.ocrData.name}
-    //   ],
-    //   claim_sn: '',
-    //   claimData: {}
-    // }, [auditor], 'auth')
     let obj = {
       type: 'confirmRequest',
       title: '需要您确认',
-      describe: '您已经对营业执照（$orgName$）审核为：$operateResult$。请您确认。',
+      describe: '您已经对营业执照（$orgName$）审核为：$operateResultStr$。请您确认。',
       pendingTaskId: claim_sn, // 后期需要修改
       descData: [
         {businessLicenseId: claim_sn},
+        {operateResultStr: opResult ? '通过' : '不通过'},
         {operateResult: opResult},
         {orgName: claim.msgObj.content.businessLicenseData.ocrData.name}
       ],
@@ -900,46 +884,7 @@ router.route('/adidIdentity')
         type: 'confirmAdidIdentity',
         content: obj
       }
-      // 在pvdata.pendingTask里保存，就不需要在redis里保存了。
-      // return redisUtils.str.set(hashStr, JSON.stringify(obj)).then(response => {
-      //   return obj
-      // }).catch(error => {
-      //   return Promise.reject({isError: true, payload: error})
-      // })
-      // return obj
       return Promise.reject({isError: false, payload: obj})
-    })
-    .then(obj => {
-      // 添加待办事项
-      // let {didttm, idpwd} = require('../tokenSDKData/privateConfig.js')
-      // let priStr = JSON.parse(tokenSDKServer.decryptDidttm(didttm, idpwd).data).prikey
-      // let pvdata = {}
-      // return tokenSDKServer.getPvData(didttm.did).then(response => {
-      //   if (response.data.result) {
-      //     pvdata = tokenSDKServer.decryptPvData(response.data.result.data, priStr)
-      //     pvdata = JSON.parse(pvdata)
-      //     let pendingTask = pvdata.pendingTask || {}
-      //     pendingTask[claim_sn] = obj
-      //     pvdata.pendingTask = pendingTask
-      //     // 备份pvdata
-      //     let pvdataCt = tokenSDKServer.encryptPvData(pvdata, priStr)
-      //     let key = '0x' + tokenSDKServer.hashKeccak256(didttm.did)
-      //     let type = 'pvdata'
-      //     let signObj = `update backup file${pvdataCt}for${didttm.did}with${key}type${type}`
-      //     let signData = tokenSDKServer.sign({keys: priStr, msg: signObj})
-      //     let signStr = `0x${signData.r.toString('hex')}${signData.s.toString('hex')}${String(signData.v).length >= 2 ? String(signData.v) : '0'+String(signData.v)}`
-      //     return tokenSDKServer.backupData(didttm.did, key, type, pvdataCt, signStr).then(response => {
-      //       if (response.data.result) {
-      //         return true
-      //       } else {
-      //         return Promise.reject(new Error('服务端备份pvdata失败'))
-      //       }
-      //     })
-      //   } else {
-      //     return Promise.reject({isError: true, payload: new Error('获取pvdata出错')})
-      //   }
-      // })
-
     })
     .catch(({isError, payload}) => {
       if (isError) {
