@@ -193,9 +193,9 @@ let businessLicensefn = (msgObj) => {
     })
     // 放在pendingTask里
     .then(bool => {
-      tokenSDKServer.addPendingTask(msgObj, msgObj.content.businessLicenseData.claim_sn, msgObj.content.type)
-      let pvdataStr = tokenSDKServer.getPvData()
-      let pvdata = JSON.parse(pvdataStr)
+      tokenSDKServer.addPendingTask(msgObj, msgObj.content.type)
+      // let pvdataStr = tokenSDKServer.getPvData()
+      // let pvdata = JSON.parse(pvdataStr)
       return Promise.reject({isError: false, payload: null})
     })
     // 通知父did处理待办事项
@@ -207,6 +207,35 @@ let businessLicensefn = (msgObj) => {
         tokenSDKServer.send({type: 'pending', message: config.errorMap.addPending.message}, [msgObj.sender], 'confirm')
       }
     })
+  } else {
+    tokenSDKServer.send({type: 'error', message: config.errorMap.verify.message, error: new Error(config.errorMap.verify.message)}, [msgObj.sender], 'confirm')
+  }
+}
+
+// adid请求签名身份证明类证书。
+// 需要先给adid randomCode
+// 再验证randomCode
+let adidRandomCodeRequestfn = (msgObj) => {
+  // 参数是否有效
+  if (!msgObj.content.applicationCertificateDataBean.applicantDid || !msgObj.content.applicationCertificateDataBean.applicantSuperDid || !msgObj.content.applicationCertificateDataBean.claim_sn || !msgObj.content.applicationCertificateDataBean.ocrData || !msgObj.content.sign) {
+    tokenSDKServer.send({type: 'error', message: payload.errorMap.arguments.message}, [msgObj.sender], 'confirm')
+  }
+  // 验签
+  let isok = tokenSDKServer.verify({sign: msgObj.content.sign})
+  if (isok) {
+    console.log('isok', isok)
+    // 检查请求的时间间隔
+    let pvdataStr = tokenSDKServer.getPvData()
+    let pvdata = JSON.parse(pvdataStr)
+    if (Date.now() - pvdata.createTime > config.timeInterval.adidReqRandomCode) {
+      // 在pendingTask里添加待办项
+      let rc = utils.genRandomCodeArr(128)
+      tokenSDKServer.addPendingTask(msgObj, msgObj.content.type, {randomCode: rc})
+      // 发消息
+      tokenSDKServer.send({type: 'adidRandomCode', randomCode: rc, claim_sn: msgObj.content.applicationCertificateDataBean.claim_sn}, [msgObj.sender], confirm)
+    } else {
+      tokenSDKServer.send({type: 'pending', message: config.errorMap.existPendingTask.message}, [msgObj.sender], 'confirm')
+    }
   } else {
     tokenSDKServer.send({type: 'error', message: config.errorMap.verify.message, error: new Error(config.errorMap.verify.message)}, [msgObj.sender], 'confirm')
   }
@@ -233,6 +262,9 @@ let confirmfn = (msgObj) => {
           break
         case 'businessLicenseConfirm':
           businessLicensefn(msgObj)
+          break
+        case 'adidRandomCodeRequest':
+          adidRandomCodeRequestfn(msgObj)
           break
         default:
           tokenSDKServer.send({type: 'error', message: config.errorMap.contentType.message}, [msgObj.sender], 'auth')
@@ -459,6 +491,7 @@ let confirmResponsefn = (msgObj) => {
     }
   }
 }
+
 // 授权
 let authfn = (msgObj) => {
   console.log('authfn', msgObj)
