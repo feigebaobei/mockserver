@@ -6,7 +6,7 @@ var tokenSDKServer = require('token-sdk-server')
 var fs = require('fs')
 const Base64 = require('js-base64').Base64
 var bodyParse = require('body-parser')
-const redisClient = require('../redisClient.js')
+const redisClient = require('../lib/redisClient.js')
 const redisUtils = require('../lib/redisUtils.js')
 
 const ws = require('ws')

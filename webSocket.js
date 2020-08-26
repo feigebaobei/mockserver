@@ -2,7 +2,7 @@
 // var utils = require('./lib/utils.js')
 // var tokenSDKServer = require('token-sdk-server')
 var config = require('./lib/config')
-const redisClient = require('./redisClient.js')
+const redisClient = require('./lib/redisClient.js')
 // const http = require('http')
 // const WebSocket = require('ws')
 // const server = http.createServer()
