@@ -51,10 +51,11 @@ router.route('/pvdata')
   })
   .get(cors.corsWithOptions, (req, res, next) =>{
     // res.send('get')
-    let {did} = req.query
-    did = did ? did : didttm.did
+    // let {did} = req.query
+    // did = did ? did : didttm.did
     let pvdata = tokenSDKServer.getPvData()
     pvdata = JSON.parse(pvdata)
+    console.log('2345')
     res.status(200).json({
       result: false,
       message: '',
@@ -95,11 +96,11 @@ router.route('/pvdata')
 
     if (backup) {
       let key = '0x' + tokenSDKServer.hashKeccak256(`${didttm.did}`)
-      // console.log(key)
       let type = 'pvdata'
       let signData = tokenSDKServer.sign({keys: priStr, msg: `update backup file${pvdataCt}for${didttm.did}with${key}type${type}`})
       let signStr = `0x${signData.r.toString('hex')}${signData.s.toString('hex')}${String(signData.v).length >= 2 ? String(signData.v) : '0'+String(signData.v)}`
-      tokenSDKServer.pushBackupData(didttm.did, key, type, pvdataCt, signStr).then(response => {
+      tokenSDKServer.pushBackupData(didttm.did, key, type, pvdataCt, signStr, {needHashKey: false}).then(response => {
+        // response { jsonrpc: '2.0', id: 1, result: true }
         res.status(200).json({
           result: true,
           message: '',

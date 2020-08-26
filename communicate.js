@@ -126,9 +126,9 @@ let idConfirmfn = (msgObj) => {
       let pvdataCt = tokenSDKServer.getPvData()
       let pvdata = JSON.parse(pvdataCt)
       let certifies = pvdata.certifies ? pvdata.certifies : {} // {owner: [], confirmed: [], ectype: []}
-      utils.setEmptyProperty(certifies, 'owner', [])
-      utils.setEmptyProperty(certifies, 'confirmed', [])
-      utils.setEmptyProperty(certifies, 'ectype', [])
+      tokenSDKServer.utils.setEmptyProperty(certifies, 'owner', [])
+      tokenSDKServer.utils.setEmptyProperty(certifies, 'confirmed', [])
+      tokenSDKServer.utils.setEmptyProperty(certifies, 'ectype', [])
       certifies.confirmed.push({
         id: msgObj.content.idCardDataBean.claim_sn,
         templateId: msgObj.content.idCardDataBean.templateId,
@@ -260,12 +260,15 @@ let confirmfn = (msgObj) => {
       }, 10 * 1000)
     }).then(() => {
       switch (msgObj.content.type) {
+        // udid的身份证明类证书
         case 'IDCardConfirm':
           idConfirmfn(msgObj)
           break
+        // 营业执照证书
         case 'businessLicenseConfirm':
           businessLicensefn(msgObj)
           break
+        // adid的身份证明类证书
         case 'applicationCertificateConfirm':
           adidRandomCodeRequestfn(msgObj)
           break
@@ -280,13 +283,13 @@ let confirmfn = (msgObj) => {
 // 使用token的did登录
 let bindfn = (msgObj) => {
   console.log('bindfn', msgObj)
+  // 检查参数有效性
+  if (!msgObj.content.bindInfo.client || !msgObj.content.bindInfo.applicationSystem || !msgObj.content.bindInfo.time || !msgObj.content.sessionId || !msgObj.content.sign) {
+    tokenSDKServer.send({type: 'error', message: config.errorMap.arguments.message, error: new Error(config.errorMap.arguments.message)}, [msgObj.sender], 'bind')
+    return
+  }
   let isok = tokenSDKServer.verify({sign: msgObj.content.sign})
   if (isok) {
-    // 检查参数有效性
-    if (!msgObj.content.bindInfo.client || !msgObj.content.bindInfo.applicationSystem || !msgObj.content.bindInfo.time || !msgObj.content.sessionId || !msgObj.content.sign) {
-      tokenSDKServer.send({type: 'error', message: config.errorMap.arguments.message, error: new Error(config.errorMap.arguments.message)}, [msgObj.sender], 'bind')
-      return
-    }
     let claim_sn = msgObj.content.certificateId,
         template = null
     // sessionID有效性
@@ -379,38 +382,7 @@ let bindfn = (msgObj) => {
     // 此时证书上的签名已经有效了。
     .then(bool => {
       // 登录
-      // 是否存在该用户
-      // return User.findOne({token: msgObj.content.bindInfo.client}).exec().then(user => {
-      //   // console.log('login', user)
-      //   // return true
-      //   if (!user) {
-      //     // 若不存在则创建新用户
-      //     // return Promise.reject({isError: false, payload: null}) // 用户表里没用该用户，需要注册。
-      //     let obj = {
-      //       token: msgObj.content.bindInfo.client,
-      //       profile: {}
-      //     }
-      //     for (let [key, value] of Object.entries(msgObj.content.userInfo)) {
-      //       obj.profile[key] = value
-      //     }
-      //     let user = new User(obj)
-      //     return mongodbUtils.save(user).then(({error, result}) => {
-      //       // console.log('亲爱', error, result)
-      //       if (error) {
-      //         return Promise.reject({isError: true, payload: new Error(config.errorMap.saveFail.message)})
-      //       } else {
-      //         return result
-      //       }
-      //     })
-      //   } else {
-      //     // 若存在则创建新用户
-      //     // return user
-      //     // User.findOneAndUpdate({token: msgObj.content.bindInfo.client}, {$inc: {loginItme: 1}}, {new: true, upsert: true}).exec().then(response => {
-
-      //     // })
-      //     return
-      //   }
-      // })
+      // 修改或创建用户
       return User.findOneAndUpdate({token: msgObj.content.bindInfo.client}, {$inc: {loginTime: 1}, profile: {name: msgObj.content.userInfo.name, gender: msgObj.content.userInfo.gender, picture: msgObj.content.userInfo.picture || ''}}, {new: true, upsert: true}).exec().then(user => {
         console.log('user', user)
         return user
@@ -430,14 +402,6 @@ let bindfn = (msgObj) => {
         })
       })
     })
-    // .then(() => {
-    //   getSessionBySid(msgObj.content.sessionId).then(({error, result}) => {
-    //     console.log('更新session', error, result)
-    //   })
-    // })
-    // .catch(error => {
-    //   console.log(error)
-    // })
     // 返回消息
     .catch(({isError, payload}) => {
       if (isError) {
@@ -518,7 +482,7 @@ let authfn = (msgObj) => {
 }
 
  // 生产
-tokenSDKServer.init(true, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: false, autoReceipt: true})
+tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: false, autoReceipt: true})
 // tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: true, autoReceipt: true})
 // tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: false, autoReceipt: false})
 

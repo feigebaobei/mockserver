@@ -1,4 +1,5 @@
 const schedule = require('node-schedule')
+const fs = require('fs')
 const utils = require('./lib/utils')
 const tokenSDKServer = require('token-sdk-server')
 
@@ -16,41 +17,9 @@ let priStr = JSON.parse(tokenSDKServer.decryptDidttm(didttm, idpwd).data).prikey
 //   j.cancel()
 // }, 5000)
 
-
+// 轮询处理pendingTask
 var j = schedule.scheduleJob('0 */1 * * * *', () => {
   console.log('schedule')
-  // tokenSDKServer.getPvData(didttm.did).then(response => {
-  // tokenSDKServer.getPvData().then(response => {
-  //   if (response.data.result) {
-  //     return JSON.parse(tokenSDKServer.decryptPvData(response.data.result.data, priStr))
-  //   } else {
-  //     return Promise.reject({do: true, error: new Error('请求pvdata失败')})
-  //   }
-  // })
-  // .then(pvdata => {
-  //   if (!pvdata.pendingTask || !pvdata.pendingTask.length) {
-  //     return Promise.reject({do: false})
-  //   }
-  //   let pendingTask = pvdata.pendingTask
-  //   for (let key of Object.keys(pendingTask)) {
-  //     // utils.opPendingTask(pendingTask[key])
-  //     // let now = new Date().getTime()
-  //     // if (now - pendingTask[key].createTime > config.timeInterval.delPendingTaskAdidCert) {
-  //     //   // pendingTask.
-  //     // } else {
-  //     // }
-  //     utils.opPendingTaskItem(key, pendingTask[key])
-  //   }
-  // })
-  // .catch(errorObj => {
-  //   if (errorObj.do) {
-  //     res.status(500).json({
-  //       result: false,
-  //       message: errorObj.error.message,
-  //       error: errorObj.error
-  //     })
-  //   }
-  // })
   let pvdata = tokenSDKServer.getPvData()
   pvdata = JSON.parse(pvdata)
   let pendingTask = pvdata.pendingTask ? pvdata.pendingTask : {}
@@ -60,10 +29,27 @@ var j = schedule.scheduleJob('0 */1 * * * *', () => {
   }
 })
 
-// var j2 = schedule.scheduleJob('* * 0 * * *', () => {
-//   // console.log('mess')
-//   // localWS.send(createMessage('hello', [], 'test'))
-// })
+// 轮询备份pvdata
+var j2 = schedule.scheduleJob('0 0 3 * * *', () => {
+  let pvdataStr = tokenSDKServer.getPvdata()
+  let pvdata = JSON.parse(pvdataStr)
+  let key = `0x${tokenSDKServer.hashKeccak256(didttm.did)}`
+  let type = 'pvdata'
+  let pvdataCt = fs.readFileSync('./tokenSDKData/pvdataCt.txt')
+  let signData = tokenSDKServer.sign({keys: priStr, msg: `update backup file${pvdataCt}for${didttm.did}with${key}type${type}`})
+  let signStr = `0x${signData.r.toString('hex')}${signData.s.toString('hex')}${String(signData.v).length >= 2 ? String(signData.v) : '0'+String(signData.v)}`
+  tokenSDKServer.pushBackupData(didttm.did, key, type, pvdataCt, signStr).then(response => {
+    // response { jsonrpc: '2.0', id: 1, result: true }
+    if (response.result) {
+      return Promise.reject({isError: false, payload: true})
+    } else {
+      return Promise.reject({isError: true, payload: new Error(config.errorMap.pushPvDataError.message)})
+    }
+  })
+  .catch(({isError, payload}) => {
+    console.log(isError, payload)
+  })
+})
 
 
 // module.exports = {}
