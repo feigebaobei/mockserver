@@ -212,6 +212,18 @@ let businessLicensefn = (msgObj) => {
   }
 }
 
+let addPTRandomCode = (msgObj, claim_sn) => {
+  // 在pendingTask里添加待办项
+  let rc = utils.genRandomCodeArr(128)
+  console.log('rc', rc)
+  // msgObj.content.type = applicationCertificateConfirm
+  // sdk里的类使用的是 adidIdentityConfirm
+  // 所以不使用msgObj.content.type
+  tokenSDKServer.addPendingTask(msgObj, 'adidIdentityConfirm', {randomCode: rc, key: claim_sn})
+  // 发消息
+  tokenSDKServer.send({type: 'adidRandomCode', randomCode: rc, claim_sn: msgObj.content.applicationCertificateDataBean.claim_sn}, [msgObj.sender], 'confirm')
+}
+
 // adid请求签名身份证明类证书。
 // 需要先给adid randomCode
 // 再验证randomCode
@@ -227,22 +239,16 @@ let adidRandomCodeRequestfn = (msgObj) => {
     // 检查请求的时间间隔
     let pvdataStr = tokenSDKServer.getPvData()
     let pvdata = JSON.parse(pvdataStr)
-    tokenSDKServer.utils.setEmptyProperty(pvdata, pendingTask, {})
+    tokenSDKServer.utils.setEmptyProperty(pvdata, 'pendingTask', {})
     // 这里是以adid的身份证书为key的
     let claim_sn = msgObj.content.applicationCertificateDataBean.claim_sn
     let value = pvdata.pendingTask[claim_sn]
     console.log('value', value)
-    if (value) {
+    if (!value) {
+      addPTRandomCode(msgObj, claim_sn)
+    } else {
       if (Date.now() - value.createTime > config.timeInterval.adidReqRandomCode) {
-        // 在pendingTask里添加待办项
-        let rc = utils.genRandomCodeArr(128)
-        console.log('rc', rc)
-        // msgObj.content.type = applicationCertificateConfirm
-        // sdk里的类使用的是 adidIdentityConfirm
-        // 所以不使用msgObj.content.type
-        tokenSDKServer.addPendingTask(msgObj, 'adidIdentityConfirm', {randomCode: rc, key: claim_sn})
-        // 发消息
-        tokenSDKServer.send({type: 'adidRandomCode', randomCode: rc, claim_sn: msgObj.content.applicationCertificateDataBean.claim_sn}, [msgObj.sender], confirm)
+        addPTRandomCode(msgObj, claim_sn)
       } else {
         tokenSDKServer.send({type: 'pending', message: config.errorMap.existPendingTask.message}, [msgObj.sender], 'confirm')
       }
