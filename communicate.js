@@ -488,4 +488,3 @@ tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn
 
  // 开发
 // tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: true, autoReceipt: false})
-
