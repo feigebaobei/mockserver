@@ -227,17 +227,25 @@ let adidRandomCodeRequestfn = (msgObj) => {
     // 检查请求的时间间隔
     let pvdataStr = tokenSDKServer.getPvData()
     let pvdata = JSON.parse(pvdataStr)
-    if (Date.now() - pvdata.createTime > config.timeInterval.adidReqRandomCode) {
-      // 在pendingTask里添加待办项
-      let rc = utils.genRandomCodeArr(128)
-      // msgObj.content.type = applicationCertificateConfirm
-      // sdk里的类使用的是 adidIdentityConfirm
-      // 所以不使用msgObj.content.type
-      tokenSDKServer.addPendingTask(msgObj, 'adidIdentityConfirm', {randomCode: rc})
-      // 发消息
-      tokenSDKServer.send({type: 'adidRandomCode', randomCode: rc, claim_sn: msgObj.content.applicationCertificateDataBean.claim_sn}, [msgObj.sender], confirm)
-    } else {
-      tokenSDKServer.send({type: 'pending', message: config.errorMap.existPendingTask.message}, [msgObj.sender], 'confirm')
+    tokenSDKServer.utils.setEmptyProperty(pvdata, pendingTask, {})
+    // 这里是以adid的身份证书为key的
+    let claim_sn = msgObj.content.applicationCertificateDataBean.claim_sn
+    let value = pvdata.pendingTask[claim_sn]
+    console.log('value', value)
+    if (value) {
+      if (Date.now() - value.createTime > config.timeInterval.adidReqRandomCode) {
+        // 在pendingTask里添加待办项
+        let rc = utils.genRandomCodeArr(128)
+        console.log('rc', rc)
+        // msgObj.content.type = applicationCertificateConfirm
+        // sdk里的类使用的是 adidIdentityConfirm
+        // 所以不使用msgObj.content.type
+        tokenSDKServer.addPendingTask(msgObj, 'adidIdentityConfirm', {randomCode: rc, key: claim_sn})
+        // 发消息
+        tokenSDKServer.send({type: 'adidRandomCode', randomCode: rc, claim_sn: msgObj.content.applicationCertificateDataBean.claim_sn}, [msgObj.sender], confirm)
+      } else {
+        tokenSDKServer.send({type: 'pending', message: config.errorMap.existPendingTask.message}, [msgObj.sender], 'confirm')
+      }
     }
   } else {
     tokenSDKServer.send({type: 'error', message: config.errorMap.verify.message, error: new Error(config.errorMap.verify.message)}, [msgObj.sender], 'confirm')
