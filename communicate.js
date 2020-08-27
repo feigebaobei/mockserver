@@ -179,7 +179,7 @@ let businessLicensefn = (msgObj) => {
   // 验签
   let isok = tokenSDKServer.verify({sign: msgObj.content.sign})
   if (isok) {
-    console.log('isok', isok)
+    // console.log('isok', isok)
     // 是否已经签发，并在有效期内。
     tokenSDKServer.getCertifyFingerPrint(msgObj.content.businessLicenseData.claim_sn, true).then(response => {
       // console.log(response.data)
@@ -200,7 +200,7 @@ let businessLicensefn = (msgObj) => {
     })
     // 通知父did处理待办事项
     .catch(({isError, payload}) => {
-      console.log(isError, payload)
+      // console.log(isError, payload)
       if (isError) {
         tokenSDKServer.send({type: 'error', message: payload.message, error: payload}, [msgObj.sender], 'confirm')
       } else {
@@ -215,7 +215,7 @@ let businessLicensefn = (msgObj) => {
 let addPTRandomCode = (msgObj, claim_sn) => {
   // 在pendingTask里添加待办项
   let rc = utils.genRandomCodeArr(128)
-  console.log('rc', rc)
+  // console.log('rc', rc)
   // msgObj.content.type = applicationCertificateConfirm
   // sdk里的类使用的是 adidIdentityConfirm
   // 所以不使用msgObj.content.type
@@ -235,7 +235,7 @@ let adidRandomCodeRequestfn = (msgObj) => {
   // 验签
   let isok = tokenSDKServer.verify({sign: msgObj.content.sign})
   if (isok) {
-    console.log('isok', isok)
+    // console.log('isok', isok)
     // 检查请求的时间间隔
     let pvdataStr = tokenSDKServer.getPvData()
     let pvdata = JSON.parse(pvdataStr)
@@ -243,7 +243,7 @@ let adidRandomCodeRequestfn = (msgObj) => {
     // 这里是以adid的身份证书为key的
     let claim_sn = msgObj.content.applicationCertificateDataBean.claim_sn
     let value = pvdata.pendingTask[claim_sn]
-    console.log('value', value)
+    // console.log('value', value)
     if (!value) {
       addPTRandomCode(msgObj, claim_sn)
     } else {
