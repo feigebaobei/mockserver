@@ -55,7 +55,7 @@ router.route('/pvdata')
     // did = did ? did : didttm.did
     let pvdata = tokenSDKServer.getPvData()
     pvdata = JSON.parse(pvdata)
-    console.log('2345')
+    // console.log('2345')
     res.status(200).json({
       result: false,
       message: '',
