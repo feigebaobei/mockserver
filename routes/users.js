@@ -296,6 +296,7 @@ router.route('/qrStr')
   })
   .get(cors.corsWithOptions, (req, res, next) => {
     let expire = Date.now() + 60 * 1000 // * 24 * 60
+    console.log(req.session)
     req.session.expireQrStr = expire
     res.status(200).json({
       result: true,
