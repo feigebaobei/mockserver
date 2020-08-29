@@ -5,7 +5,9 @@ var cookieParser = require('cookie-parser');
 // var bodyParser = require('body-parser');
 var logger = require('morgan');
 const session = require('express-session');
-// var FileStore = require('session-file-store')(session)
+// var FileStore = require('session-file-store')(session) // 不使用文件保存session了
+// const RedisStore = require('connect-redis')(session)
+const {redisStore} = require('./lib/redisStore.js')
 // var redis = require('redis')
 const mongoose = require('mongoose')
 const passport = require('passport')
@@ -24,7 +26,8 @@ var schedule = require('./schedule.js')
 // var webSocket = require('./webSocket.js')
 // var webSocket = require('./ws2.js') // 测试用
 const authenticate = require('./lib/authenticate.js')
-const {mongoStore} = require('./lib/mongoStore.js')
+// const {mongoStore} = require('./lib/mongoStore.js') // 不使用mongodb保存session了
+const redisClient = require('./lib/redisClient.js')
 var webSocket = require('./communicate.js')
 
 // 连接数据库 redis
@@ -51,12 +54,12 @@ var webSocket = require('./communicate.js')
 // let url = config.mongodbUrl
 // // 连接数据库
 // const url = config.mongoUrl
-const url = config.mongodb.prod
-// console.log('url', url)
-const connect = mongoose.connect(url, {useNewUrlParser: true, useCreateIndex: true, useFindAndModify: false, useUnifiedTopology: true})
-connect.then(db => {
-  console.log('Connected mongodb')
-}).catch(err => {console.log(err)})
+// 原来是在mongodb里保存用户数据的，现在要求在redis里保存用户数据。
+// const url = config.mongodb.prod
+// const connect = mongoose.connect(url, {useNewUrlParser: true, useCreateIndex: true, useFindAndModify: false, useUnifiedTopology: true})
+// connect.then(db => {
+//   console.log('Connected mongodb')
+// }).catch(err => {console.log(err)})
 
 var app = express();
 
@@ -82,8 +85,8 @@ app.use(session({
   // resave: true,
   name: 'tokenDid',
   secret: config.session.secret,
-  // saveUninitialized: true,
-  saveUninitialized: false,
+  saveUninitialized: true, // 默认值
+  // saveUninitialized: false,
   cookie: {
     maxAge: 10 * 24 * 60 * 60 * 1000,
     // domain: 'localhost:8080',
@@ -103,7 +106,9 @@ app.use(session({
     // sameSite: 'none',
     // rolling: true
   },
-  store: mongoStore
+  // store: mongoStore
+  // store: new RedisStore({client: redisClient})
+  store: redisStore
 }))
 app.use(passport.initialize())
 app.use(passport.session())

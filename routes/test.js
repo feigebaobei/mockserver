@@ -55,7 +55,7 @@ router.route('/pvdata')
     // did = did ? did : didttm.did
     let pvdata = tokenSDKServer.getPvData()
     pvdata = JSON.parse(pvdata)
-    console.log('2345')
+    // console.log('2345')
     res.status(200).json({
       result: false,
       message: '',
@@ -356,9 +356,7 @@ router.route('/redis/list')
     })
   })
   .post(cors.corsWithOptions, (req, res, next) => {
-    // res.send('post')
     let {key, value} = req.body
-    // console.log(key, value)
     redisUtils.list.rpush(key, value).then(response => {
       res.status(200).json({
         result: true,

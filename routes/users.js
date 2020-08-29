@@ -6,7 +6,7 @@ const tokenSDKServer = require('token-sdk-server')
 var utils = require('../lib/utils.js')
 var bodyParser = require('body-parser')
 var cors = require('./cors')
-const redisUtils = require('../lib/redisUtils.js')
+// const redisUtils = require('../lib/redisUtils.js')
 const User = require('../models/user')
 const config = require('../lib/config')
 const mongodbUtils = require('../lib/mongodbUtils')
@@ -23,27 +23,6 @@ router.get('/', cors.corsWithOptions, function(req, res, next) {
   res.send('respond with a resource');
 });
 
-// 指明需要用户提供那些数据
-// router.get('/login/userInfo', cors.corsWithOptions, (req, res, next) => {
-//   // console.log(req.session.id)
-//   // req.session.save((err) => {
-//   //   // 应该在数据库记录错误
-//   //   console.log('指明需要用户提供那些数据', err)
-//   // })
-//   res.status(200).json({
-//     result: true,
-//     data: {
-//       adid: 'did:ttm:a0f49a0b95a5201b690bf0b79eb715dad9ae7815efe9800998ecf8427e8d74',
-//       userInfoList: ['name', 'avatar', 'udid'],
-//       goal_uri: 'http://127.0.0.1:9876/user/login',
-//       // sessionId: utils.getUuid()
-//       uuid: utils.getUuid()
-//       // sessionId: req.session.id
-//     },
-//     message: ''
-//   })
-// })
-
 // 登录
 // router.post('/login', (req, res, next) => {
 //   res.send({name: 'tank', avatar: 'https://ss1.bdstatic.com/70cFuXSh_Q1YnxGkpoWK1HF6hhy/it/u=1718143317,3612074652&fm=26&gp=0.jpg'})
@@ -55,15 +34,7 @@ router.route('/login')
   .get(cors.corsWithOptions, (req, res, next) => {
     res.send('get')
   })
-  .post(cors.corsWithOptions,
-    // passport.authenticate('local', (err, user, msgObj, d) => {
-    //   console.log(err, user, msgObj, d)
-    // }),
-    // passport.authenticate('local'),
-    (req, res, next) => {
-      // console.log('body', req.body)
-      // console.log('body', req.session)
-      // res.setHeader("Access-Control-Allow-Methods", "POST, GET")
+  .post(cors.corsWithOptions, (req, res, next) => {
       res.status(200).json({
         result: true,
         message: 'login success',
@@ -111,11 +82,7 @@ router.route('/signup')
       if (isError) {
         res.status(500).json({
           result: false,
-          // message: '',
           message: payload.message,
-          // error: payload
-          // error: new Error("dfsdfsd")
-          // error: new Error(payload.message)
           error: payload
         })
       } else {
@@ -140,7 +107,7 @@ router.route('/loginStatus')
     res.sendStatus(200)
   })
   .get(cors.corsWithOptions, (req, res, next) => {
-    // console.log(req.user)
+    console.log(req.user)
     if (req.user) {
       res.status(200).json({
         result: true,
@@ -171,6 +138,7 @@ router.route('/userInfo')
     res.sendStatus(200)
   })
   .get(cors.corsWithOptions, authenticate.isAuthenticated, (req, res, next) => {
+    console.log(req.user)
     res.status(200).json({
       result: true,
       message: '',
@@ -276,25 +244,25 @@ router.route('/logout')
     res.send('delete')
   })
 
-router.route('/test')
-  .options(cors.corsWithOptions, (req, res) => {
-    res.sendStatus(200)
-  })
-  .get(cors.corsWithOptions, (req, res, next) => {
-    res.send('get')
-  })
-  .post(cors.corsWithOptions, (req, res, next) => {
-    console.log(req.cookies)
-    console.log(req.session)
-    console.log(req.user)
-    res.send('post')
-  })
-  .put(cors.corsWithOptions, (req, res, next) => {
-    res.send('put')
-  })
-  .delete(cors.corsWithOptions, (req, res, next) => {
-    res.send('delete')
-  })
+// router.route('/test')
+//   .options(cors.corsWithOptions, (req, res) => {
+//     res.sendStatus(200)
+//   })
+//   .get(cors.corsWithOptions, (req, res, next) => {
+//     res.send('get')
+//   })
+//   .post(cors.corsWithOptions, (req, res, next) => {
+//     console.log(req.cookies)
+//     console.log(req.session)
+//     console.log(req.user)
+//     res.send('post')
+//   })
+//   .put(cors.corsWithOptions, (req, res, next) => {
+//     res.send('put')
+//   })
+//   .delete(cors.corsWithOptions, (req, res, next) => {
+//     res.send('delete')
+//   })
 
 // 测试用
 router.route('/cookie')
