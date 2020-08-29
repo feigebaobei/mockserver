@@ -300,14 +300,17 @@ let confirmfn = (msgObj) => {
 let bindfn = (msgObj) => {
   console.log('bindfn', msgObj)
   // 检查参数有效性
-  if (!msgObj.content.bindInfo.client || !msgObj.content.bindInfo.applicationSystem || !msgObj.content.bindInfo.time || !msgObj.content.sessionId || !msgObj.content.sign || !msgObj.content.userInfo) {
+  // if (!msgObj.content.bindInfo.client || !msgObj.content.bindInfo.applicationSystem || !msgObj.content.bindInfo.time || !msgObj.content.sessionId || !msgObj.content.sign || !msgObj.content.userInfo) {
+  if (!msgObj.content.sessionId || !msgObj.content.sign) {
     tokenSDKServer.send({type: 'error', message: config.errorMap.arguments.message, error: new Error(config.errorMap.arguments.message)}, [msgObj.sender], 'bind')
     return
   }
   let isok = tokenSDKServer.verify({sign: msgObj.content.sign})
   if (isok) {
     let claim_sn = msgObj.content.certificateId,
-        template = null
+        template = null,
+        userUid = null,
+        userToken = null
     // sessionID有效性
     let recombinationSessionId = `${config.redis.sessionPrefix}${msgObj.content.sessionId}`
     let session = null // 准备保存session
@@ -333,7 +336,7 @@ let bindfn = (msgObj) => {
     // })
     // 检查qrStr的时间有效性
     .then(session => {
-      return true // 测试用
+      // return true // 测试用
       let now = Date.now()
       if (now > session.expireQrStr) {
         return Promise.reject({isError: true, payload: new Error(config.errorMap.qrStrTimeout.message)})
@@ -407,19 +410,22 @@ let bindfn = (msgObj) => {
     // 设置用户信息
     .then(bool => {
       // let uid = utils.getUuid()
-      let userUid = `${config.redis.userPrefix.index}${utils.getUuid()}`
-      let userToken = `${config.redis.userPrefix.index}${config.redis.userPrefix.token}${uid}`
+      // let userUid = `${config.redis.userPrefix.index}${utils.getUuid()}`
+      // let userToken = `${config.redis.userPrefix.index}${config.redis.userPrefix.token}${msgObj.content.bindInfo.client}`
+      userUid = `${config.redis.userPrefix.index}${utils.getUuid()}`
+      userToken = `${config.redis.userPrefix.index}${config.redis.userPrefix.token}${msgObj.content.bindInfo.client}`
       // 检查用户是否存在
       // 根据userToken在redis里找到的是uid
       redisUtils.str.get(userToken).then(uid => {
-        // console.log('uid', uid)
+        console.log('uid', uid)
         return uid // 返回userToken
       })
       .then(uid => {
         if (uid) { // 若存在则更新
           return redisUtils.str.get(uid).then(user => {
+            console.log(user)
             user = JSON.parse(user)
-            user = tokenSDKServer.utils.mergeTrueField(user, {profile: msgObj.content.userInfo})
+            user = tokenSDKServer.utils.mergeTrueField(user, {profile: msgObj.content.userInfo || {}})
             return user
           }).then(user => {
             return redisUtils.str.set(uid, JSON.stringify(user)).then(({error, result}) => {
