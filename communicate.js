@@ -5,7 +5,9 @@ const mongodbUtils = require('./lib/mongodbUtils')
 // const wsc = require('ws')
 const config = require('./lib/config.js')
 const utils = require('./lib/utils.js')
-const {mongoStore, getAllSession, getSessionBySid, setSession} = require('./lib/mongoStore.js')
+// const {getSessionBySid, setSession} = require('./lib/mongoStore.js') // 不使用mongodb保存session了
+const redisUtils = require('./lib/redisUtils.js')
+
 
 const {didttm, idpwd} = tokenSDKServer.getPrivateConfig()
 const priStr = tokenSDKServer.getPriStr()
@@ -298,7 +300,7 @@ let confirmfn = (msgObj) => {
 let bindfn = (msgObj) => {
   console.log('bindfn', msgObj)
   // 检查参数有效性
-  if (!msgObj.content.bindInfo.client || !msgObj.content.bindInfo.applicationSystem || !msgObj.content.bindInfo.time || !msgObj.content.sessionId || !msgObj.content.sign) {
+  if (!msgObj.content.bindInfo.client || !msgObj.content.bindInfo.applicationSystem || !msgObj.content.bindInfo.time || !msgObj.content.sessionId || !msgObj.content.sign || !msgObj.content.userInfo) {
     tokenSDKServer.send({type: 'error', message: config.errorMap.arguments.message, error: new Error(config.errorMap.arguments.message)}, [msgObj.sender], 'bind')
     return
   }
@@ -307,23 +309,31 @@ let bindfn = (msgObj) => {
     let claim_sn = msgObj.content.certificateId,
         template = null
     // sessionID有效性
-    getSessionBySid(msgObj.content.sessionId).then(({error, result}) => {
-      // console.log(error, result)
-      if (error) {
-        return Promise.reject({isError: true, payload: new Error(config.errorMap.selectSession.message)})
+    let recombinationSessionId = `${config.redis.sessionPrefix}${msgObj.content.sessionId}`
+    let session = null // 准备保存session
+    redisUtils.str.get(recombinationSessionId).then(response => {
+      if (response.error) {
+        return Promise.reject({isError: true, payload: response.error})
       } else {
-        if (result) {
-          return result
-        } else {
-          return Promise.reject({isError: true, payload: new Error(config.errorMap.existSession.message)})
-        }
+        session = JSON.parse(response.result)
+        return JSON.parse(response.result)
       }
     })
+    // getSessionBySid(msgObj.content.sessionId).then(({error, result}) => {
+    //   console.log(error, result)
+    //   if (error) {
+    //     return Promise.reject({isError: true, payload: new Error(config.errorMap.selectSession.message)})
+    //   } else {
+    //     if (result) {
+    //       return result
+    //     } else {
+    //       return Promise.reject({isError: true, payload: new Error(config.errorMap.existSession.message)})
+    //     }
+    //   }
+    // })
     // 检查qrStr的时间有效性
     .then(session => {
-      // return true // 测试用
-      // console.log('session',session)
-      // if (session)
+      return true // 测试用
       let now = Date.now()
       if (now > session.expireQrStr) {
         return Promise.reject({isError: true, payload: new Error(config.errorMap.qrStrTimeout.message)})
@@ -394,30 +404,110 @@ let bindfn = (msgObj) => {
       }
     })
     // 此时证书上的签名已经有效了。
+    // 设置用户信息
     .then(bool => {
-      // 登录
-      // 修改或创建用户
-      return User.findOneAndUpdate({token: msgObj.content.bindInfo.client}, {$inc: {loginTime: 1}, profile: {name: msgObj.content.userInfo.name, gender: msgObj.content.userInfo.gender, picture: msgObj.content.userInfo.picture || ''}}, {new: true, upsert: true}).exec().then(user => {
-        console.log('user', user)
-        return user
+      // let uid = utils.getUuid()
+      let userUid = `${config.redis.userPrefix.index}${utils.getUuid()}`
+      let userToken = `${config.redis.userPrefix.index}${config.redis.userPrefix.token}${uid}`
+      // 检查用户是否存在
+      // 根据userToken在redis里找到的是uid
+      redisUtils.str.get(userToken).then(uid => {
+        // console.log('uid', uid)
+        return uid // 返回userToken
+      })
+      .then(uid => {
+        if (uid) { // 若存在则更新
+          return redisUtils.str.get(uid).then(user => {
+            user = JSON.parse(user)
+            user = tokenSDKServer.utils.mergeTrueField(user, {profile: msgObj.content.userInfo})
+            return user
+          }).then(user => {
+            return redisUtils.str.set(uid, JSON.stringify(user)).then(({error, result}) => {
+              if (error) {
+                return Promise.reject({isError: true, payload: error})
+              } else {
+                return true
+              }
+            })
+          })
+        } else { // 若不存在则创建
+          let origin = {token: msgObj.content.bindInfo.client, profile: msgObj.userInfo}
+          let user = tokenSDKServer.utils.schemeToObj(config.redis.userScheme, origin)
+          // 创建userToken: userUid
+          return redisUtils.str.set(userToken, userUid).then(({error, result}) => {
+            if (error) {
+              return Promise.reject({isError: true, payload: error})
+            } else {
+              return true
+            }
+          })
+          // 创建userUid: user
+          .then(bool => {
+            return redisUtils.str.set(userUid, JSON.stringify(user)).then(({error, result}) => {
+              if (error) {
+                return Promise.reject({isError: true, payload: error})
+              } else {
+                return true
+              }
+            })
+          })
+        }
       })
     })
     // 修改session
-    .then(user => {
-      return getSessionBySid(msgObj.content.sessionId).then(({error, result}) => {
-        let obj = {
-          user: String(user._id)
+    .then (bool => {
+      // return redisUtils.str.get(recombinationSessionId).then(({error, result}) => {
+      //   if (error) {
+      //     return Promise.reject({isError: true, payload: error})
+      //   } else {
+      //     return session
+      //   }
+      // })
+      session.passport = {user: userUid}
+      return redisUtils.str.set(recombinationSessionId, JSON.stringify(session)).then(({error, result}) => {
+        if (error) {
+          return Promise.reject({isError: true, payload: error})
+        } else {
+          return Promise.reject({isError: false, payload: config.errorMap.loginSuccess.message})
         }
-        result.passport = obj
-        return setSession(msgObj.content.sessionId, result).then(({error, result}) => {
-          if (error) {
-            return Promise.reject({isError: true, payload: error})
-          }
-        })
       })
+    })
+    // .then(bool => {
+    //   console.log('bool', bool)
+    //   // 登录
+    //   // 修改或创建用户
+    //   // 使用redis保存用户信息
+    //   // let u
+    //   redisUtils.str.get(`${config.redis.userPrefix.index}${config.redis.userPrefix.token}${uid}`)
+    //   let uid = utils.getUuid()
+
+    //   // 使用mongodb保存用户信息
+    //   // return User.findOneAndUpdate({token: msgObj.content.bindInfo.client}, {$inc: {loginTime: 1}, profile: {name: msgObj.content.userInfo.name, gender: msgObj.content.userInfo.gender, picture: msgObj.content.userInfo.picture || ''}}, {new: true, upsert: true}).exec().then(user => {
+    //   //   console.log('user', user)
+    //   //   return user
+    //   // })
+    // })
+    // // 修改session
+    // .then(user => {
+    //   return getSessionBySid(msgObj.content.sessionId).then(({error, result}) => {
+    //     let obj = {
+    //       user: String(user._id)
+    //     }
+    //     result.passport = obj
+    //     return setSession(msgObj.content.sessionId, result).then(({error, result}) => {
+    //       if (error) {
+    //         return Promise.reject({isError: true, payload: error})
+    //       }
+    //     })
+    //   })
+    // })
+    .catch(error => {
+      console.log(error)
     })
     // 返回消息
     .catch(({isError, payload}) => {
+      console.log(isError, payload)
+      // return 'sdfg' // 测试用
       if (isError) {
         tokenSDKServer.send({type: 'error', message: payload.message, error: payload}, [msgObj.sender], 'bind')
       } else {

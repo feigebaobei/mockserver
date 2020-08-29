@@ -6,7 +6,8 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 const session = require('express-session');
 // var FileStore = require('session-file-store')(session) // 不使用文件保存session了
-const RedisStore = require('connect-redis')(session)
+// const RedisStore = require('connect-redis')(session)
+const {redisStore} = require('./lib/redisStore.js')
 // var redis = require('redis')
 const mongoose = require('mongoose')
 const passport = require('passport')
@@ -54,11 +55,11 @@ var webSocket = require('./communicate.js')
 // // 连接数据库
 // const url = config.mongoUrl
 // 原来是在mongodb里保存用户数据的，现在要求在redis里保存用户数据。
-const url = config.mongodb.prod
-const connect = mongoose.connect(url, {useNewUrlParser: true, useCreateIndex: true, useFindAndModify: false, useUnifiedTopology: true})
-connect.then(db => {
-  console.log('Connected mongodb')
-}).catch(err => {console.log(err)})
+// const url = config.mongodb.prod
+// const connect = mongoose.connect(url, {useNewUrlParser: true, useCreateIndex: true, useFindAndModify: false, useUnifiedTopology: true})
+// connect.then(db => {
+//   console.log('Connected mongodb')
+// }).catch(err => {console.log(err)})
 
 var app = express();
 
@@ -106,7 +107,8 @@ app.use(session({
     // rolling: true
   },
   // store: mongoStore
-  store: new RedisStore({client: redisClient})
+  // store: new RedisStore({client: redisClient})
+  store: redisStore
 }))
 app.use(passport.initialize())
 app.use(passport.session())
