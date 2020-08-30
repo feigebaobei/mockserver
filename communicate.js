@@ -496,7 +496,9 @@ let bindfn = (msgObj) => {
       //     return session
       //   }
       // })
+      console.log(session)
       session.passport = {user: userUid}
+      console.log(session)
       return redisUtils.str.set(recombinationSessionId, JSON.stringify(session)).then(({error, result}) => {
         if (error) {
           return Promise.reject({isError: true, payload: error})
@@ -534,12 +536,12 @@ let bindfn = (msgObj) => {
     //     })
     //   })
     // })
-    .catch(error => {
-      console.log(error)
-    })
+    // .catch(error => {
+    //   console.log(error)
+    // })
     // 返回消息
     .catch(({isError, payload}) => {
-      console.log(isError, payload)
+      // console.log(isError, payload)
       // return 'sdfg' // 测试用
       if (isError) {
         tokenSDKServer.send({type: 'error', message: payload.message, error: payload}, [msgObj.sender], 'bind')
