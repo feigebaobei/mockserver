@@ -498,11 +498,11 @@ let bindfn = (msgObj) => {
       // })
       // console.log(session)
       session.passport = {user: userUid}
-      let s = JSON.stringify(session)
-      console.log(s)
-      // return redisUtils.str.set(recombinationSessionId, JSON.stringify(session)).then(({error, result}) => {
-      return redisUtils.str.set(recombinationSessionId, s).then(({error, result}) => {
-        console.log('更新session', error, result)
+      // let s = JSON.stringify(session)
+      // console.log(s)
+      return redisUtils.str.set(recombinationSessionId, JSON.stringify(session)).then(({error, result}) => {
+      // return redisUtils.str.set(recombinationSessionId, s).then(({error, result}) => {
+        // console.log('更新session', error, result)
         if (error) {
           return Promise.reject({isError: true, payload: error})
         } else {
@@ -544,28 +544,28 @@ let bindfn = (msgObj) => {
     // })
     // 返回消息
     .catch(({isError, payload}) => {
-      console.log(isError, payload)
+      // console.log(isError, payload)
       // return 'sdfg' // 测试用
       if (isError) {
         tokenSDKServer.send({type: 'error', message: payload.message, error: payload}, [msgObj.sender], 'bind')
       } else {
         tokenSDKServer.send({type: 'success', message: payload}, [msgObj.sender], 'bind')
       }
-      redisUtils.str.get(recombinationSessionId).then(({error, result}) => {
-        console.log('确认session', error, result)
-      })
-      .catch(error => {
-        console.log(error)
-      })
-      setTimeout(function () {
-        console.log('setTimeout')
-        redisUtils.str.get(recombinationSessionId).then(({error, result}) => {
-          console.log('确认session', error, result)
-        })
-        .catch(error => {
-          console.log(error)
-        })
-      }, 1000)
+      // redisUtils.str.get(recombinationSessionId).then(({error, result}) => {
+      //   console.log('确认session', error, result)
+      // })
+      // .catch(error => {
+      //   console.log(error)
+      // })
+      // setTimeout(function () {
+      //   console.log('setTimeout')
+      //   redisUtils.str.get(recombinationSessionId).then(({error, result}) => {
+      //     console.log('确认session', error, result)
+      //   })
+      //   .catch(error => {
+      //     console.log(error)
+      //   })
+      // }, 1000)
     })
   } else {
     tokenSDKServer.send({type: 'error', message: config.errorMap.verify.message, error: new Error(config.errorMap,verify.message)}, [msgObj.sender], 'bind')
