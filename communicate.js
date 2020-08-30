@@ -423,7 +423,7 @@ let bindfn = (msgObj) => {
       .then(uid => {
         if (uid) { // 若存在则更新
           return redisUtils.str.get(uid).then(user => {
-            console.log(user)
+            console.log('getUid', user)
             user = JSON.parse(user)
             user = tokenSDKServer.utils.mergeTrueField(user, {profile: msgObj.content.userInfo || {}})
             return user
