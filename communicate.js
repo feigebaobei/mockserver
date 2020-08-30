@@ -506,9 +506,6 @@ let bindfn = (msgObj) => {
         } else {
           return Promise.reject({isError: false, payload: config.errorMap.loginSuccess.message})
         }
-        redisUtils.str.get(recombinationSessionId).then(({error, result}) => {
-          console.log('确认session', error, result)
-        })
       })
     })
     // .then(bool => {
@@ -547,6 +544,9 @@ let bindfn = (msgObj) => {
     .catch(({isError, payload}) => {
       // console.log(isError, payload)
       // return 'sdfg' // 测试用
+        redisUtils.str.get(recombinationSessionId).then(({error, result}) => {
+          console.log('确认session', error, result)
+        })
       if (isError) {
         tokenSDKServer.send({type: 'error', message: payload.message, error: payload}, [msgObj.sender], 'bind')
       } else {
