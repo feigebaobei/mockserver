@@ -437,6 +437,8 @@ let bindfn = (msgObj) => {
           origin = {token: msgObj.content.bindInfo.client, profile: msgObj.userInfo}
           origin = tokenSDKServer.utils.schemeToObj(config.redis.userScheme, origin)
         }
+        // console.log('origin', origin)
+        // origin = JSON.stringify(origin)
         return utils.createUserRds(origin).then(({error, result}) => {
           if (error) {
             return Promise.reject({isError: true, payload: error})
@@ -532,9 +534,9 @@ let bindfn = (msgObj) => {
     //     })
     //   })
     // })
-    // .catch(error => {
-    //   console.log(error)
-    // })
+    .catch(error => {
+      console.log(error)
+    })
     // 返回消息
     .catch(({isError, payload}) => {
       console.log(isError, payload)
