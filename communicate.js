@@ -439,7 +439,7 @@ let bindfn = (msgObj) => {
         }
         // console.log('origin', origin)
         // origin = JSON.stringify(origin)
-        return utils.createUserRds(origin).then(({error, result}) => {
+        return utils.createUserRds(origin, {userUid, userToken}).then(({error, result}) => {
           if (error) {
             return Promise.reject({isError: true, payload: error})
           } else {
