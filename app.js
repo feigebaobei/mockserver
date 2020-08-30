@@ -7,10 +7,11 @@ var logger = require('morgan');
 const session = require('express-session');
 // var FileStore = require('session-file-store')(session) // 不使用文件保存session了
 // const RedisStore = require('connect-redis')(session)
-const {redisStore} = require('./lib/redisStore.js')
 // var redis = require('redis')
 const mongoose = require('mongoose')
 const passport = require('passport')
+const {redisStore} = require('./lib/redisStore.js')
+const authRedis = require('./lib/authRedis')
 const config = require('./lib/config')
 
 var indexRouter = require('./routes/index');
@@ -25,9 +26,9 @@ var auditRouter = require('./routes/audit.js')
 var schedule = require('./schedule.js')
 // var webSocket = require('./webSocket.js')
 // var webSocket = require('./ws2.js') // 测试用
-const authenticate = require('./lib/authenticate.js')
+// const authenticate = require('./lib/authenticate.js') // 不使用mongodb保存session了
 // const {mongoStore} = require('./lib/mongoStore.js') // 不使用mongodb保存session了
-const redisClient = require('./lib/redisClient.js')
+// const redisClient = require('./lib/redisClient.js')
 var webSocket = require('./communicate.js')
 
 // 连接数据库 redis
