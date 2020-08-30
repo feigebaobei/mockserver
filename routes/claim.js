@@ -11,7 +11,8 @@ var utils = require('../lib/utils.js')
 // var redisUtils = require('../lib/redisUtils.js')
 var cors = require('./cors')
 var config = require('../lib/config')
-const authenticate = require('../lib/authenticate')
+// const authenticate = require('../lib/authenticate')
+const authRedis = require('../lib/authRedis')
 
 router.use(bodyParser.json({limit: '10240kb'}))
 // router.use(bodyParser.json({limit: '40kb'}))
@@ -692,7 +693,7 @@ router.route('/pendingTask')
   .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
   })
-  .get(cors.corsWithOptions, authenticate.isAuthenticated, (req, res, next) =>{
+  .get(cors.corsWithOptions, authRedis.isAuthenticated, (req, res, next) =>{
     let claim_sn = req.query.claim_sn
     let pvdata = tokenSDKServer.getPvData()
     pvdata = JSON.parse(pvdata)
@@ -729,7 +730,7 @@ router.route('/personCheck')
   .get(cors.corsWithOptions, (req, res, next) =>{
     res.send('get')
   })
-  .post(cors.corsWithOptions, authenticate.isAuthenticated, (req, res, next) => {
+  .post(cors.corsWithOptions, authRedis.isAuthenticated, (req, res, next) => {
     // 检查参数
     let {opResult, claim_sn} = req.body
     let auditor = req.user.token

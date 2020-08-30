@@ -11,7 +11,8 @@ const User = require('../models/user')
 const config = require('../lib/config')
 const mongodbUtils = require('../lib/mongodbUtils')
 const {mongoStore, getAllSession, getSessionBySid, setSession} = require('../lib/mongoStore.js')
-const authenticate = require('../lib/authenticate')
+// const authenticate = require('../lib/authenticate')
+const authRedis = require('../lib/authRedis')
 // router.use(bodyParser.urlencoded({extended: false}))
 router.use(bodyParser.json())
 
@@ -137,7 +138,7 @@ router.route('/userInfo')
   .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
   })
-  .get(cors.corsWithOptions, authenticate.isAuthenticated, (req, res, next) => {
+  .get(cors.corsWithOptions, authRedis.isAuthenticated, (req, res, next) => {
     console.log(req.user)
     res.status(200).json({
       result: true,
@@ -227,7 +228,7 @@ router.route('/logout')
   .get(cors.corsWithOptions, (req, res, next) => {
     res.send('get')
   })
-  .post(cors.corsWithOptions, authenticate.isAuthenticated, (req, res, next) => {
+  .post(cors.corsWithOptions, authRedis.isAuthenticated, (req, res, next) => {
     req.logout()
     // console.log(req.session)
     // console.log(req.user)
