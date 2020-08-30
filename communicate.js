@@ -420,7 +420,7 @@ let bindfn = (msgObj) => {
       //   console.log('uid', uid)
       //   return uid // 返回userToken
       // })
-      utils.getUserRds(userToken, 'token').then(({error, result}) => {
+      return utils.getUserRds(userToken, 'token').then(({error, result}) => {
         console.log('123456', error, result)
         if (error) {
           return Promise.reject({isError: true, payload: error})
@@ -428,45 +428,62 @@ let bindfn = (msgObj) => {
           return result
         }
       })
-      .then(uid => {
-        if (uid) { // 若存在则更新
-          return redisUtils.str.get(uid).then(user => {
-            console.log('getUid', user)
-            user = JSON.parse(user)
-            user = tokenSDKServer.utils.mergeTrueField(user, {profile: msgObj.content.userInfo || {}})
-            return user
-          }).then(user => {
-            return redisUtils.str.set(uid, JSON.stringify(user)).then(({error, result}) => {
-              if (error) {
-                return Promise.reject({isError: true, payload: error})
-              } else {
-                return true
-              }
-            })
-          })
+      .then(user => {
+        let origin = null
+        if (user) { // 若存在则更新
+          // return utils.
+          origin = tokenSDKServer.utils.mergeTrueField(JSON.parse(user), {profile: msgObj.content.userInfo || {}})
         } else { // 若不存在则创建
-          let origin = {token: msgObj.content.bindInfo.client, profile: msgObj.userInfo}
-          let user = tokenSDKServer.utils.schemeToObj(config.redis.userScheme, origin)
-          // 创建userToken: userUid
-          return redisUtils.str.set(userToken, userUid).then(({error, result}) => {
-            if (error) {
-              return Promise.reject({isError: true, payload: error})
-            } else {
-              return true
-            }
-          })
-          // 创建userUid: user
-          .then(bool => {
-            return redisUtils.str.set(userUid, JSON.stringify(user)).then(({error, result}) => {
-              if (error) {
-                return Promise.reject({isError: true, payload: error})
-              } else {
-                return true
-              }
-            })
-          })
+          origin = {token: msgObj.content.bindInfo.client, profile: msgObj.userInfo}
+          origin = tokenSDKServer.utils.schemeToObj(config.redis.userScheme, origin)
         }
+        return utils.createUserRds(origin).then(({error, result}) => {
+          if (error) {
+            return Promise.reject({isError: true, payload: error})
+          } else {
+            return true
+          }
+        })
       })
+      // .then(uid => {
+      //   if (uid) { // 若存在则更新
+      //     return redisUtils.str.get(uid).then(user => {
+      //       console.log('getUid', user)
+      //       user = JSON.parse(user)
+      //       user = tokenSDKServer.utils.mergeTrueField(user, {profile: msgObj.content.userInfo || {}})
+      //       return user
+      //     }).then(user => {
+      //       return redisUtils.str.set(uid, JSON.stringify(user)).then(({error, result}) => {
+      //         if (error) {
+      //           return Promise.reject({isError: true, payload: error})
+      //         } else {
+      //           return true
+      //         }
+      //       })
+      //     })
+      //   } else { // 若不存在则创建
+      //     let origin = {token: msgObj.content.bindInfo.client, profile: msgObj.userInfo}
+      //     let user = tokenSDKServer.utils.schemeToObj(config.redis.userScheme, origin)
+      //     // 创建userToken: userUid
+      //     return redisUtils.str.set(userToken, userUid).then(({error, result}) => {
+      //       if (error) {
+      //         return Promise.reject({isError: true, payload: error})
+      //       } else {
+      //         return true
+      //       }
+      //     })
+      //     // 创建userUid: user
+      //     .then(bool => {
+      //       return redisUtils.str.set(userUid, JSON.stringify(user)).then(({error, result}) => {
+      //         if (error) {
+      //           return Promise.reject({isError: true, payload: error})
+      //         } else {
+      //           return true
+      //         }
+      //       })
+      //     })
+      //   }
+      // })
     })
     // 修改session
     .then (bool => {
@@ -515,9 +532,9 @@ let bindfn = (msgObj) => {
     //     })
     //   })
     // })
-    .catch(error => {
-      console.log(error)
-    })
+    // .catch(error => {
+    //   console.log(error)
+    // })
     // 返回消息
     .catch(({isError, payload}) => {
       console.log(isError, payload)
