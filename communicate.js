@@ -421,7 +421,7 @@ let bindfn = (msgObj) => {
       //   return uid // 返回userToken
       // })
       return utils.getUserRds(userToken, 'token').then(({error, result}) => {
-        console.log('123456', error, result)
+        // console.log('123456', error, result)
         if (error) {
           return Promise.reject({isError: true, payload: error})
         } else {
@@ -496,15 +496,19 @@ let bindfn = (msgObj) => {
       //     return session
       //   }
       // })
-      console.log(session)
+      // console.log(session)
       session.passport = {user: userUid}
       console.log(session)
       return redisUtils.str.set(recombinationSessionId, JSON.stringify(session)).then(({error, result}) => {
+        console.log('更新session', error, result)
         if (error) {
           return Promise.reject({isError: true, payload: error})
         } else {
           return Promise.reject({isError: false, payload: config.errorMap.loginSuccess.message})
         }
+        redisUtils.str.get(recombinationSessionId).then(({error, result}) => {
+          console.log('确认session', error, result)
+        })
       })
     })
     // .then(bool => {
