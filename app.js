@@ -83,7 +83,7 @@ app.use(session({
   // resave: true,
   // store: new FileStore()
 
-  // resave: true,
+  resave: true,
   name: 'tokenDid',
   secret: config.session.secret,
   saveUninitialized: true, // 默认值
