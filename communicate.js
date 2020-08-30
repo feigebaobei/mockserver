@@ -416,9 +416,17 @@ let bindfn = (msgObj) => {
       userToken = `${config.redis.userPrefix.index}${config.redis.userPrefix.token}${msgObj.content.bindInfo.client}`
       // 检查用户是否存在
       // 根据userToken在redis里找到的是uid
-      redisUtils.str.get(userToken).then(uid => {
-        console.log('uid', uid)
-        return uid // 返回userToken
+      // redisUtils.str.get(userToken).then(uid => {
+      //   console.log('uid', uid)
+      //   return uid // 返回userToken
+      // })
+      utils.getUserRds(userToken, 'token').then(({error, result}) => {
+        console.log('123456', error, result)
+        if (error) {
+          return Promise.reject({isError: true, payload: error})
+        } else {
+          return result
+        }
       })
       .then(uid => {
         if (uid) { // 若存在则更新
@@ -592,10 +600,9 @@ let authfn = (msgObj) => {
 }
 
  // 生产
-// tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: false, autoReceipt: true})
+tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: false, autoReceipt: true})
 // tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: true, autoReceipt: true})
 // tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: false, autoReceipt: false})
 
  // 开发
-tokenSDKServer.init(true, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: true, autoReceipt: false})
-
+// tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: true, autoReceipt: false})
