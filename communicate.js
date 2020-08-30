@@ -498,8 +498,10 @@ let bindfn = (msgObj) => {
       // })
       // console.log(session)
       session.passport = {user: userUid}
-      console.log(session)
-      return redisUtils.str.set(recombinationSessionId, JSON.stringify(session)).then(({error, result}) => {
+      let s = JSON.stringify(session)
+      console.log(s)
+      // return redisUtils.str.set(recombinationSessionId, JSON.stringify(session)).then(({error, result}) => {
+      return redisUtils.str.set(recombinationSessionId, s).then(({error, result}) => {
         console.log('更新session', error, result)
         if (error) {
           return Promise.reject({isError: true, payload: error})
