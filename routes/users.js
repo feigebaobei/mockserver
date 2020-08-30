@@ -108,7 +108,8 @@ router.route('/loginStatus')
     res.sendStatus(200)
   })
   .get(cors.corsWithOptions, (req, res, next) => {
-    // console.log(req.user)
+    console.log(req.session)
+    console.log(req.user)
     if (req.user) {
       res.status(200).json({
         result: true,
