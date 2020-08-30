@@ -544,16 +544,28 @@ let bindfn = (msgObj) => {
     // })
     // 返回消息
     .catch(({isError, payload}) => {
-      // console.log(isError, payload)
+      console.log(isError, payload)
       // return 'sdfg' // 测试用
-        redisUtils.str.get(recombinationSessionId).then(({error, result}) => {
-          console.log('确认session', error, result)
-        })
       if (isError) {
         tokenSDKServer.send({type: 'error', message: payload.message, error: payload}, [msgObj.sender], 'bind')
       } else {
         tokenSDKServer.send({type: 'success', message: payload}, [msgObj.sender], 'bind')
       }
+      redisUtils.str.get(recombinationSessionId).then(({error, result}) => {
+        console.log('确认session', error, result)
+      })
+      .catch(error => {
+        console.log(error)
+      })
+      setTimeout(function () {
+        console.log('setTimeout')
+        redisUtils.str.get(recombinationSessionId).then(({error, result}) => {
+          console.log('确认session', error, result)
+        })
+        .catch(error => {
+          console.log(error)
+        })
+      }, 1000)
     })
   } else {
     tokenSDKServer.send({type: 'error', message: config.errorMap.verify.message, error: new Error(config.errorMap,verify.message)}, [msgObj.sender], 'bind')
