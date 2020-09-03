@@ -13,6 +13,7 @@ var cors = require('./cors')
 var config = require('../lib/config')
 // const authenticate = require('../lib/authenticate')
 const authRedis = require('../lib/authRedis')
+const {ac, permission} = require('../lib/accessControl')
 
 router.use(bodyParser.json({limit: '10240kb'}))
 // router.use(bodyParser.json({limit: '40kb'}))
@@ -730,44 +731,73 @@ router.route('/personCheck')
   .get(cors.corsWithOptions, (req, res, next) =>{
     res.send('get')
   })
-  .post(cors.corsWithOptions, authRedis.isAuthenticated, (req, res, next) => {
-    // 检查参数
-    let {opResult, claim_sn} = req.body
-    let auditor = req.user.token
-    // console.log(req.user)
-    opResult = !!opResult
-    if (!claim_sn || !auditor) {
-      return res.status(500).json({
-        result: false,
-        message: '参数错误',
-        error: new Error('参数错误')
+  .post(cors.corsWithOptions,
+    authRedis.isAuthenticated,
+    (req, res, next) => {
+      // console.log(req.session)
+      // console.log(req.user)
+      // permission = (role, behavior, resource, sync = false) => {
+      let role = req.user.role
+      // role = 'auditor'
+      // permission(role, 'audit', 'claim').then(response => {
+      role = 'tank'
+      permission(role, 'read', 'news').then(response => {
+        // return response.
+        // console.log(response)
+        if (response.granted) {
+          return true
+        } else {
+          utils.resFormatter(res, 401, {message: config.errorMap.denyAccess.message})
+          return
+        }
       })
-    }
-    let pvdataStr = tokenSDKServer.getPvData()
-    let pvdata = JSON.parse(pvdataStr)
-    let claim = pvdata.pendingTask[claim_sn] || {}
-    let obj = {
-      type: 'confirmRequest',
-      title: '需要您确认',
-      describe: '您已经对营业执照（$orgName$）审核为：$operateResultStr$。请您确认。',
-      pendingTaskId: claim_sn, // 后期需要修改
-      descData: [
-        {businessLicenseId: claim_sn},
-        {operateResultStr: opResult ? '通过' : '不通过'},
-        {operateResult: opResult},
-        {orgName: claim.msgObj.content.businessLicenseData.ocrData.name}
-      ],
-      claim_sn: '',
-      claimData: {}
-    }
-    // console.log(obj, auditor)
-    tokenSDKServer.send(obj, [auditor], 'auth')
-    // 返回结果
-    res.status(200).json({
-      result: true,
-      message: '已给审核员发消息',
-      data: true
-    })
+      .then(bool => {
+        // console.log('bool', bool)
+        // 检查参数
+        let {opResult, claim_sn} = req.body
+        let auditor = req.user.token // 审核者的did
+        opResult = !!opResult
+        // console.log(req.user)
+        // console.log(auditor)
+        // auditor = 'ere' // 测试用
+        if (!claim_sn || !auditor) {
+          return res.status(500).json({
+            result: false,
+            message: '参数错误',
+            error: new Error('参数错误')
+          })
+        }
+        // console.log('test')
+        // return
+        let pvdataStr = tokenSDKServer.getPvData()
+        let pvdata = JSON.parse(pvdataStr)
+        let claim = pvdata.pendingTask[claim_sn] || {}
+        let obj = {
+          type: 'confirmRequest',
+          title: '需要您确认',
+          describe: '您已经对营业执照（$orgName$）审核为：$operateResultStr$。请您确认。',
+          pendingTaskId: claim_sn, // 后期需要修改
+          descData: [
+            {businessLicenseId: claim_sn},
+            {operateResultStr: opResult ? '通过' : '不通过'},
+            {operateResult: opResult},
+            {orgName: claim.msgObj.content.businessLicenseData.ocrData.name}
+          ],
+          claim_sn: '',
+          claimData: {}
+        }
+        // console.log(obj, auditor)
+        tokenSDKServer.send(obj, [auditor], 'auth')
+        // 返回结果
+        res.status(200).json({
+          result: true,
+          message: '已给审核员发消息',
+          data: true
+        })
+      })
+      .catch(error => {
+        console.log(error)
+      })
   })
   .put(cors.corsWithOptions, (req, res, next) => {
     res.send('put')
