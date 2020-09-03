@@ -8,6 +8,18 @@ const Base64 = require('js-base64').Base64
 var bodyParse = require('body-parser')
 const redisClient = require('../lib/redisClient.js')
 const redisUtils = require('../lib/redisUtils.js')
+/**
+ * 因casbin不好使用。所以不用了。
+// const { newEnforcer } = require('casbin')
+// const enforcer = await newEnforcer('path/to/model.conf', 'path/to/policy.csv');
+// const enforcer = newEnforcer('lib/casbin/model.conf', 'lib/casbin/policy.csv');
+// const {enforcer} = require('../lib/casbin/index')
+// const asdf = require('../lib/casbin/index')
+// console.log('enforcer', enforcer)
+// enforcer.then(response => {console.log('response', response)})
+// .catch(error => {console.log('error', error)})
+ */
+const {ac} = require('../lib/accessControl')
 
 const ws = require('ws')
 
@@ -378,6 +390,65 @@ router.route('/redis/list')
     // res.send('delete')
   })
 
+// 操作redis里的zset元素
+router.route('/redis/zset')
+  .options(cors.corsWithOptions, (req, res) => {
+    res.sendStatus(200)
+  })
+  .get(cors.corsWithOptions, (req, res, next) =>{
+    // res.send('get')
+    let key = req.query.key
+    key = 'testzset'
+    redisUtils.zset.zrange(key, 0, 10).then(response => {
+      console.log(response)
+      utils.resFormatter(res, 200)
+    }).catch(error => {
+      console.log(error)
+      utils.resFormatter(res, 500)
+    })
+  })
+  .post(cors.corsWithOptions, (req, res, next) => {
+    // let {key, value} = req.body
+    // console.log(key, value)
+    // let args = ['testzset', 0, 'v0', 1, 'v1', 2, 'v2']
+    let key = 'testzset'
+    // redisUtils.zset.zadd(args).then(response => {
+    //   console.log(response)
+    //   utils.resFormatter(res, 200)
+    // }).catch(error => {
+    //   console.log(error)
+    //   utils.resFormatter(res, 500)
+    // })
+
+    // redisUtils.zset.zcard('testzset').then(response => {
+    //   console.log(response)
+    //   utils.resFormatter(res, 200)
+    // }).catch(error => {
+    //   console.log(error)
+    //   utils.resFormatter(res, 500)
+    // })
+
+    // redisUtils.zset.zaddOneL(key, 'first').then(response => {
+    // redisUtils.zset.zaddOneR(key, 'first').then(response => {
+    // redisUtils.zset.zrangebyscore(key, 0, 10).then(response => {
+    // redisUtils.zset.zrem(key, ['first', 'v0']).then(response => {
+    //   console.log(response)
+    //   utils.resFormatter(res, 200)
+    // }).catch(error => {
+    //   console.log(error)
+    //   utils.resFormatter(res, 500)
+    // })
+
+    utils.resFormatter(res, 200)
+  })
+  .put(cors.corsWithOptions, (req, res, next) => {
+    res.send('put')
+  })
+  .delete(cors.corsWithOptions, (req, res, next) => {
+    // res.send('delete')
+  })
+
+
 // 刘欢提供的模板（元数据）服务
 router.route('/meta')
   .options(cors.corsWithOptions, (req, res) => {
@@ -504,5 +575,72 @@ router.route('/certify')
   .delete(cors.corsWithOptions, (req, res, next) => {
     res.send('delete')
   })
+
+// 测试casbin
+router.route('/casbin')
+  .options(cors.corsWithOptions, (req, res) => {
+    res.sendStatus(200)
+  })
+  .get(cors.corsWithOptions, (req, res, next) =>{
+    // res.send('get')
+    let sub = 'alice',
+      obj = 'datal',
+      act = 'read'
+    // let b = enforcer.enforce(sub, obj, act)
+    console.log('b', b)
+    // if (b) {
+    //   utils.resFormatter(res, 200, {data: true})
+    // } else {
+    //   utils.resFormatter(res, 200, {data: false})
+    // }
+  })
+  .post(cors.corsWithOptions, (req, res, next) => {
+    res.send('post')
+  })
+  .put(cors.corsWithOptions, (req, res, next) => {
+    res.send('put')
+  })
+  .delete(cors.corsWithOptions, (req, res, next) => {
+    res.send('delete')
+  })
+
+// 测试role-acl
+router.route('/roleAcl')
+  .options(cors.corsWithOptions, (req, res) => {
+    res.sendStatus(200)
+  })
+  .get(cors.corsWithOptions, (req, res, next) =>{
+    // res.send('get')
+    // let role = req.user.role
+    let role = 'user' //测试用
+    // role = 'tank'
+    // let permission = ac.can(role).execute('read').on('video')
+    // permission.then(r => {
+    //   console.log('r', r)
+    // }).catch(e => {
+    //   console.log('e', e)
+    // })
+    let permission = ac.can(role).execute('read').sync().on('video')
+    console.log(permission)
+    console.log(permission.granted)
+    if (permission.granted) {
+      console.log('allow')
+    } else {
+      console.log('deny')
+    }
+    utils.resFormatter(res, 200, {data: permission.granted})
+  })
+  .post(cors.corsWithOptions,
+    // permission,
+    (req, res, next) => {
+    res.send('post')
+  })
+  .put(cors.corsWithOptions, (req, res, next) => {
+    res.send('put')
+  })
+  .delete(cors.corsWithOptions, (req, res, next) => {
+    res.send('delete')
+  })
+
 
 module.exports = router;

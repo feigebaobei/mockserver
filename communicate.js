@@ -639,9 +639,9 @@ let authfn = (msgObj) => {
 }
 
  // 生产
-tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: false, autoReceipt: true})
+// tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: false, autoReceipt: true})
 // tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: true, autoReceipt: true})
 // tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: false, autoReceipt: false})
 
  // 开发
-// tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: true, autoReceipt: false})
+tokenSDKServer.init(false, {confirmfn: confirmfn, bindfn: bindfn, authfn: authfn, isDev: true, autoReceipt: false})

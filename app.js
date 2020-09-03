@@ -86,7 +86,8 @@ app.use(session({
   resave: false,
   name: 'tokenDid',
   secret: config.session.secret,
-  saveUninitialized: true, // 默认值
+  // saveUninitialized: true, // 默认值
+  saveUninitialized: false,
   // saveUninitialized: false,
   cookie: {
     maxAge: 10 * 24 * 60 * 60 * 1000,

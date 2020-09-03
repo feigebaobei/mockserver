@@ -7,12 +7,14 @@ var utils = require('../lib/utils.js')
 var bodyParser = require('body-parser')
 var cors = require('./cors')
 // const redisUtils = require('../lib/redisUtils.js')
-const User = require('../models/user')
+// const User = require('../models/user')
 const config = require('../lib/config')
 // const mongodbUtils = require('../lib/mongodbUtils')
 // const {mongoStore, getAllSession, getSessionBySid, setSession} = require('../lib/mongoStore.js')
 // const authenticate = require('../lib/authenticate')
 const authRedis = require('../lib/authRedis')
+const {ac} = require('../lib/accessControl')
+const redisUtils = require('../lib/redisUtils')
 // router.use(bodyParser.urlencoded({extended: false}))
 router.use(bodyParser.json())
 
@@ -35,14 +37,53 @@ router.route('/login')
   .get(cors.corsWithOptions, (req, res, next) => {
     res.send('get')
   })
-  .post(cors.corsWithOptions, (req, res, next) => {
-      res.status(200).json({
-        result: true,
-        message: 'login success',
-        data: req.user
-      })
-    }
-  )
+  .post(cors.corsWithOptions,
+    passport.authenticate('local'),
+    (req, res, next) => {
+    // 需要完善
+    // res.status(200).json({
+    //   result: true,
+    //   message: 'login success',
+    //   data: req.user
+    // })
+    // console.log(req.body)
+    let {email, password} = req.body
+    // console.log(req.login)
+    // console.log(req.session)
+    utils.getUserRds(email, 'email').then(({error, result}) => {
+      if (result) {
+        let user = JSON.parse(result)
+        delete user.password
+        // console.log('user', user)
+        req.lgoin(user, (error) => {
+          // console.log(error)
+          if (error) {
+            return Promise.reject({isError: true, payload: new Error(config.errorMap.loginFail.message)})
+          } else {
+            return Promise.reject({isError: false, payload: user})
+          }
+        })
+        // return Promise.reject({isError: false, payload: user})
+      } else {
+        return Promise.reject({isError: true, payload: new Error(config.errorMap.unExistUser.message)})
+      }
+    })
+    .catch(({isError, payload}) => {
+      if (isError) {
+        utils.resFormatter(res, 500, {message: payload.message})
+      } else {
+        // console.log(req.sessionID, req.session)
+        // console.log(req.user)
+        // req.login(function (a, b, c) {
+        //   console.log(a, b ,c)
+        // })
+        utils.resFormatter(res, 200, {data: payload})
+      }
+    })
+    .catch(error => {
+      console.log(error)
+    })
+  })
   .put(cors.corsWithOptions, (req, res, next) => {
     res.send('put')
   })
@@ -58,40 +99,73 @@ router.route('/signup')
   .get(cors.corsWithOptions, (req, res, next) => {
     res.send('get')
   })
-  .post(cors.corsWithOptions, (req, res, next) => {
+  .post(cors.corsWithOptions,
+    // passport.authenticate('local'),
+    (req, res, next) => {
     let {email, password} = req.body
+    // 使用mongodb保存用户
     // email = String(Math.floor(Math.random() * 100000))
-    User.findOne({email: email}).exec().then(response => {
-      if (response) {
-        return Promise.reject({isError: true, payload: new Error(config.errorMap.existUser.message)})
-      } else {
-        let user = new User({
-          email: email,
-          password: md5(password)
+    // User.findOne({email: email}).exec().then(response => {
+    //   if (response) {
+    //     return Promise.reject({isError: true, payload: new Error(config.errorMap.existUser.message)})
+    //   } else {
+    //     let user = new User({
+    //       email: email,
+    //       password: md5(password)
+    //     })
+    //     return mongodbUtils.save(user).then(response => {
+    //       if (response.error) {
+    //         return Promise.reject({isError: true, payload: response.result})
+    //       } else {
+    //         return Promise.reject({isError: false, payload: response.result})
+    //       }
+    //     })
+    //   }
+    // })
+    // .catch(({isError, payload}) => {
+    //   // console.log(isError, payload)
+    //   if (isError) {
+    //     res.status(500).json({
+    //       result: false,
+    //       message: payload.message,
+    //       error: payload
+    //     })
+    //   } else {
+    //     res.status(200).json({
+    //       result: true,
+    //       message: '',
+    //       data: payload
+    //     })
+    //   }
+    // })
+    // 使用redis保存用户
+    utils.getUserRds(email, 'email').then(({error, result}) => {
+      if (!result) {
+        // 不存在则创建
+        let origin = tokenSDKServer.utils.schemeToObj(config.redis.userScheme, {
+          email,
+          password: md5(password),
+          // role: ['user']
+          role: 'user'
         })
-        return mongodbUtils.save(user).then(response => {
-          if (response.error) {
-            return Promise.reject({isError: true, payload: response.result})
+        // console.log('signup', origin)
+        return utils.createUserRds(origin).then(({error, result}) => {
+          if (error) {
+            return Promise.reject({isError: true, payload: error})
           } else {
-            return Promise.reject({isError: false, payload: response.result})
+            return Promise.reject({isError: false, payload: result})
           }
         })
+      } else {
+        // 存在则报错
+        return Promise.reject(({isError: true, payload: new Error(config.errorMap.existUser.message)}))
       }
     })
     .catch(({isError, payload}) => {
-      // console.log(isError, payload)
       if (isError) {
-        res.status(500).json({
-          result: false,
-          message: payload.message,
-          error: payload
-        })
+        utils.resFormatter(res, 500, {message: payload.message})
       } else {
-        res.status(200).json({
-          result: true,
-          message: '',
-          data: payload
-        })
+        utils.resFormatter(res, 200, {data: payload})
       }
     })
   })
@@ -108,8 +182,8 @@ router.route('/loginStatus')
     res.sendStatus(200)
   })
   .get(cors.corsWithOptions, (req, res, next) => {
-    // console.log(req.sessionID, req.session)
-    // console.log(req.user)
+    console.log(req.sessionID, req.session)
+    console.log(req.user)
     if (req.user) {
       res.status(200).json({
         result: true,
@@ -140,11 +214,11 @@ router.route('/userInfo')
     res.sendStatus(200)
   })
   .get(cors.corsWithOptions, authRedis.isAuthenticated, (req, res, next) => {
-    console.log(req.user)
+    // console.log(req.user)
     res.status(200).json({
       result: true,
       message: '',
-      data: req.user
+      data: JSON.parse(req.user)
     })
   })
   .post(cors.corsWithOptions, (req, res, next) => {
@@ -191,37 +265,39 @@ router.route('/phone/checkCode')
     res.send('delete')
   })
 
-router.route('/receive')
-  .options(cors.corsWithOptions, (req, res) => {
-    res.sendStatus(200)
-  })
-  .get(cors.corsWithOptions, (req, res, next) => {
-    res.send('get')
-  })
-  .post(cors.corsWithOptions, (req, res, next) => {
-    console.log('2134567')
-    console.log(JSON.stringify(req.body))
-    if (req.body.name && req.body.avatar && req.body.udid) {
-      res.status(200).json({
-        result: true,
-        data: JSON.stringify(req.body),
-        message: ''
-      })
-    } else {
-      res.status(400).json({
-        result: false,
-        error: '没有name/avatar/udid.',
-        message: '没有name/avatar/udid.'
-      })
-    }
-  })
-  .put(cors.corsWithOptions, (req, res, next) => {
-    res.send('put')
-  })
-  .delete(cors.corsWithOptions, (req, res, next) => {
-    res.send('delete')
-  })
+// 可能用不到了。
+// router.route('/receive')
+//   .options(cors.corsWithOptions, (req, res) => {
+//     res.sendStatus(200)
+//   })
+//   .get(cors.corsWithOptions, (req, res, next) => {
+//     res.send('get')
+//   })
+//   .post(cors.corsWithOptions, (req, res, next) => {
+//     console.log('2134567')
+//     console.log(JSON.stringify(req.body))
+//     if (req.body.name && req.body.avatar && req.body.udid) {
+//       res.status(200).json({
+//         result: true,
+//         data: JSON.stringify(req.body),
+//         message: ''
+//       })
+//     } else {
+//       res.status(400).json({
+//         result: false,
+//         error: '没有name/avatar/udid.',
+//         message: '没有name/avatar/udid.'
+//       })
+//     }
+//   })
+//   .put(cors.corsWithOptions, (req, res, next) => {
+//     res.send('put')
+//   })
+//   .delete(cors.corsWithOptions, (req, res, next) => {
+//     res.send('delete')
+//   })
 
+// 登出
 router.route('/logout')
   .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
@@ -231,8 +307,6 @@ router.route('/logout')
   })
   .post(cors.corsWithOptions, authRedis.isAuthenticated, (req, res, next) => {
     req.logout()
-    // console.log(req.session)
-    // console.log(req.user)
     res.status(200).json({
       result: true,
       message: '',
@@ -267,31 +341,31 @@ router.route('/logout')
 //   })
 
 // 测试用
-router.route('/cookie')
-  .options(cors.corsWithOptions, (req, res) => {
-    res.sendStatus(200)
-  })
-  .get(cors.corsWithOptions, (req, res, next) => {
-    res.send('get')
-  })
-  .post(cors.corsWithOptions, (req, res, next) => {
-    // console.log(req.body)
-    // console.log(req.session)
-    // console.log(req.user)
-    res.cookie('name', 'stone', {maxAge: 60000, httpOnly: true})
-    res.cookie('name1', 'stone', {maxAge: 60000, httpOnly: true})
-    // res.cookie('name20', 'stone', {maxAge: 60000, httpOnly: true, signed: true})
-    // res.cookie('name21', 'stone', {maxAge: 60000, httpOnly: true, signed: true})
-    res.send('post')
-  })
-  .put(cors.corsWithOptions, (req, res, next) => {
-    res.send('put')
-  })
-  .delete(cors.corsWithOptions, (req, res, next) => {
-    res.send('delete')
-  })
+// router.route('/cookie')
+//   .options(cors.corsWithOptions, (req, res) => {
+//     res.sendStatus(200)
+//   })
+//   .get(cors.corsWithOptions, (req, res, next) => {
+//     res.send('get')
+//   })
+//   .post(cors.corsWithOptions, (req, res, next) => {
+//     // console.log(req.body)
+//     // console.log(req.session)
+//     // console.log(req.user)
+//     res.cookie('name', 'stone', {maxAge: 60000, httpOnly: true})
+//     res.cookie('name1', 'stone', {maxAge: 60000, httpOnly: true})
+//     // res.cookie('name20', 'stone', {maxAge: 60000, httpOnly: true, signed: true})
+//     // res.cookie('name21', 'stone', {maxAge: 60000, httpOnly: true, signed: true})
+//     res.send('post')
+//   })
+//   .put(cors.corsWithOptions, (req, res, next) => {
+//     res.send('put')
+//   })
+//   .delete(cors.corsWithOptions, (req, res, next) => {
+//     res.send('delete')
+//   })
 
-// qrStr
+// 请求qrStr
 router.route('/qrStr')
   .options(cors.corsWithOptions, (req, res) => {
     res.sendStatus(200)
@@ -316,6 +390,72 @@ router.route('/qrStr')
     res.send('delete')
   })
 
+// 查询用户
+router.route('/select')
+  .options(cors.corsWithOptions, authRedis.isAuthenticated, (req, res) => {
+    res.sendStatus(200)
+  })
+  .get(cors.corsWithOptions,  (req, res, next) => {
+    let {type, value} = req.query
+    // console.log(req)
+    let uId = req.session.passport.user
+    // let user = req.user
+    let role = req.user.role
+    // let req.userId
+    // userId
+    // 判断是否有权限
+    role = 'auditor' // 测试用
+    ac.can(role).execute('read').on('user').then(permission => {
+      // console.log('then', permission)
+      if (permission.granted) {
+        return true
+      } else {
+        utils.resFormatter(res, 401, {message: config.errorMap.denyAccess.message, data: {}})
+      }
+    })
+    .catch(error => {
+      // console.log('catch', error)
+      utils.resFormatter(res, 500, {message: config.errorMap.denyAccess.message})
+      // return Promise.reject({isError: true, payload: new Error(config.errorMap.denyAccess.message)})
+    })
+    // 取消用户数据
+    .then(bool => {
+      uId = 'user:7a4c6aeb-dcc0-4815-9f91-cf49a20aad42' // 测试用
+      return redisUtils.str.get(uId).then(({error, result}) => {
+        if (error) {
+          return Promise.reject({isError: true, payload: new Error(config.errorMap.queryFail.message)})
+        } else {
+          return Promise.reject({isError: false, payload: result})
+        }
+        // console.log(user)
+      })
+      .catch(({isError, payload}) => {
+        // console.log(error)
+        if (isError) {
+          utils.resFormatter(res, 500, {message: payload.message || ''})
+        } else {
+          utils.resFormatter(res, 200, {data: [JSON.parse(payload)]})
+        }
+      })
+    })
+    // .catch(({isError, payload}) => {
+    //   if (isError) {
+    //     utils.resFormatter(res, 500, {message: payload.message})
+    //   } else {
+    //     utils.resFormatter(res, 200)
+    //   }
+    // })
+
+  })
+  .post(cors.corsWithOptions, (req, res, next) => {
+    res.send('post')
+  })
+  .put(cors.corsWithOptions, (req, res, next) => {
+    res.send('put')
+  })
+  .delete(cors.corsWithOptions, (req, res, next) => {
+    res.send('delete')
+  })
 
 
 module.exports = router;
