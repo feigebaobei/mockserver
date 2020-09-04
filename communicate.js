@@ -539,17 +539,29 @@ let bindfn = (msgObj) => {
         if (error) {
           return Promise.reject({isError: true, payload: error})
         } else {
-          return result
+          return JSON.parse(result)
+          // return result
         }
       })
       .then(user => {
         let origin = null
         if (user) { // 若存在则更新
           // return utils.
-          origin = tokenSDKServer.utils.mergeTrueField(JSON.parse(user), {profile: msgObj.content.userInfo || {}})
+          // origin = tokenSDKServer.utils.mergeTrueField(JSON.parse(user), {profile: msgObj.content.userInfo || {}})
+          origin = tokenSDKServer.utils.mergeTrueField(user, {
+            name: msgObj.content.userInfo.name || '',
+            gender: msgObj.content.userInfo.gender || '',
+            picture: msgObj.content.userInfo.picture || ''
+          })
         } else { // 若不存在则创建
-          origin = {token: msgObj.content.bindInfo.client, profile: msgObj.userInfo}
-          origin = tokenSDKServer.utils.schemeToObj(config.redis.userScheme, origin)
+          // origin = {token: msgObj.content.bindInfo.client, profile: msgObj.userInfo}
+          // origin = tokenSDKServer.utils.schemeToObj(config.redis.userScheme, origin)
+          origin = tokenSDKServer.utils.schemeToObj(config.redis.userScheme, {
+            token: msgObj.content.bindInfo.client,
+            name: msgObj.content.userInfo.name || '',
+            gender: msgObj.content.userInfo.gender || '',
+            picture: msgObj.content.userInfo.picture || ''
+          })
         }
         // console.log('origin', origin)
         // origin = JSON.stringify(origin)
@@ -557,7 +569,7 @@ let bindfn = (msgObj) => {
           if (error) {
             return Promise.reject({isError: true, payload: error})
           } else {
-            return true
+            return origin
           }
         })
       })
@@ -600,6 +612,10 @@ let bindfn = (msgObj) => {
       //     })
       //   }
       // })
+    })
+    // 添加联系人
+    .then(user => {
+      return tokenSDKServer.addContact(user.token)
     })
     // 修改session
     .then (bool => {
