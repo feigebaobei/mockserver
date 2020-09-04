@@ -378,7 +378,18 @@ router.route('/roles')
     res.sendStatus(200)
   })
   .get(cors.corsWithOptions, (req, res, next) => {
-    utils.resFormatter(res, 200, {data: config.redis.roles})
+    let box = config.redis.roles
+    let roles = Object.keys(box).reduce((res, cur) => {
+      res.push(box[cur].value)
+      return res
+    }, [])
+    res.shift()
+    res.pop()
+    // for (let key in obj)
+    // for (let ele of arr)
+    // for (let [key, value] of Object.entries(config.redis.roles)) {
+    // }
+    utils.resFormatter(res, 200, {data: res})
   })
   .post(cors.corsWithOptions, (req, res, next) => {
     res.send('post')
