@@ -100,10 +100,10 @@ router.route('/signup')
     res.send('get')
   })
   .post(cors.corsWithOptions,
-    // passport.authenticate('local'),
     (req, res, next) => {
     let {email, password} = req.body
     // 使用mongodb保存用户
+    // 请不要删除这里。
     // email = String(Math.floor(Math.random() * 100000))
     // User.findOne({email: email}).exec().then(response => {
     //   if (response) {
@@ -265,38 +265,6 @@ router.route('/phone/checkCode')
     res.send('delete')
   })
 
-// 可能用不到了。
-// router.route('/receive')
-//   .options(cors.corsWithOptions, (req, res) => {
-//     res.sendStatus(200)
-//   })
-//   .get(cors.corsWithOptions, (req, res, next) => {
-//     res.send('get')
-//   })
-//   .post(cors.corsWithOptions, (req, res, next) => {
-//     console.log('2134567')
-//     console.log(JSON.stringify(req.body))
-//     if (req.body.name && req.body.avatar && req.body.udid) {
-//       res.status(200).json({
-//         result: true,
-//         data: JSON.stringify(req.body),
-//         message: ''
-//       })
-//     } else {
-//       res.status(400).json({
-//         result: false,
-//         error: '没有name/avatar/udid.',
-//         message: '没有name/avatar/udid.'
-//       })
-//     }
-//   })
-//   .put(cors.corsWithOptions, (req, res, next) => {
-//     res.send('put')
-//   })
-//   .delete(cors.corsWithOptions, (req, res, next) => {
-//     res.send('delete')
-//   })
-
 // 登出
 router.route('/logout')
   .options(cors.corsWithOptions, (req, res) => {
@@ -319,51 +287,6 @@ router.route('/logout')
   .delete(cors.corsWithOptions, (req, res, next) => {
     res.send('delete')
   })
-
-// router.route('/test')
-//   .options(cors.corsWithOptions, (req, res) => {
-//     res.sendStatus(200)
-//   })
-//   .get(cors.corsWithOptions, (req, res, next) => {
-//     res.send('get')
-//   })
-//   .post(cors.corsWithOptions, (req, res, next) => {
-//     console.log(req.cookies)
-//     console.log(req.session)
-//     console.log(req.user)
-//     res.send('post')
-//   })
-//   .put(cors.corsWithOptions, (req, res, next) => {
-//     res.send('put')
-//   })
-//   .delete(cors.corsWithOptions, (req, res, next) => {
-//     res.send('delete')
-//   })
-
-// 测试用
-// router.route('/cookie')
-//   .options(cors.corsWithOptions, (req, res) => {
-//     res.sendStatus(200)
-//   })
-//   .get(cors.corsWithOptions, (req, res, next) => {
-//     res.send('get')
-//   })
-//   .post(cors.corsWithOptions, (req, res, next) => {
-//     // console.log(req.body)
-//     // console.log(req.session)
-//     // console.log(req.user)
-//     res.cookie('name', 'stone', {maxAge: 60000, httpOnly: true})
-//     res.cookie('name1', 'stone', {maxAge: 60000, httpOnly: true})
-//     // res.cookie('name20', 'stone', {maxAge: 60000, httpOnly: true, signed: true})
-//     // res.cookie('name21', 'stone', {maxAge: 60000, httpOnly: true, signed: true})
-//     res.send('post')
-//   })
-//   .put(cors.corsWithOptions, (req, res, next) => {
-//     res.send('put')
-//   })
-//   .delete(cors.corsWithOptions, (req, res, next) => {
-//     res.send('delete')
-//   })
 
 // 请求qrStr
 router.route('/qrStr')
@@ -395,7 +318,7 @@ router.route('/select')
   .options(cors.corsWithOptions, authRedis.isAuthenticated, (req, res) => {
     res.sendStatus(200)
   })
-  .get(cors.corsWithOptions,  (req, res, next) => {
+  .get(cors.corsWithOptions, (req, res, next) => {
     let {type, value} = req.query
     // console.log(req)
     let uId = req.session.passport.user
@@ -438,14 +361,35 @@ router.route('/select')
         }
       })
     })
-    // .catch(({isError, payload}) => {
-    //   if (isError) {
-    //     utils.resFormatter(res, 500, {message: payload.message})
-    //   } else {
-    //     utils.resFormatter(res, 200)
-    //   }
-    // })
+  })
+  .post(cors.corsWithOptions, (req, res, next) => {
+    res.send('post')
+  })
+  .put(cors.corsWithOptions, (req, res, next) => {
+    res.send('put')
+  })
+  .delete(cors.corsWithOptions, (req, res, next) => {
+    res.send('delete')
+  })
 
+// 查询角色
+router.route('/roles')
+  .options(cors.corsWithOptions, authRedis.isAuthenticated, (req, res) => {
+    res.sendStatus(200)
+  })
+  .get(cors.corsWithOptions, (req, res, next) => {
+    let box = config.redis.roles
+    let roles = Object.keys(box).reduce((res, cur) => {
+      res.push(box[cur].value)
+      return res
+    }, [])
+    res.shift()
+    res.pop()
+    // for (let key in obj)
+    // for (let ele of arr)
+    // for (let [key, value] of Object.entries(config.redis.roles)) {
+    // }
+    utils.resFormatter(res, 200, {data: res})
   })
   .post(cors.corsWithOptions, (req, res, next) => {
     res.send('post')

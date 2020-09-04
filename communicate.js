@@ -260,6 +260,112 @@ let adidRandomCodeRequestfn = (msgObj) => {
   }
 }
 
+// 用户在app上申请角色。
+let applyRoleRequest = (msgObj) => {
+  // 检查参数
+  if (!msgObj.content.name || !msgObj.content.gender) {
+    tokenSDKServer.send({type: 'error', message: payload.errorMap.arguments.message}, [msgObj.sender], 'confirm')
+  }
+  // 暂时没有签名
+  let isok = true
+  if (isok) {
+    let pvdataStr = tokenSDKServer.getPvData()
+    let pvdata = JSON.parse(pvdataStr)
+    tokenSDKServer.utils.setEmptyProperty(pvdata, 'pendingTask', {})
+    let pendingTask = pvdata.pendingTask
+    // 放在pendingTask里
+    let key = `${msgObj.sender}applyRoleRequest` // 更好: 使用config里的方法。
+    let value = pendingTask[key]
+    if (value && value.createTime + config.timeInterval.applyRoleRequest < Date.now()) {
+      tokenSDKServer.send({type: 'pending', message: config.errorMap.existPendingTask.message}, [msgObj.sender], 'confirm')
+    } else {
+      tokenSDKServer.addPendingTask(msgObj, 'applyRoleRequest', {})
+    }
+    // 给高级别用户发消息
+    tokenSDKServer.utils.setEmptyProperty(pvdata, 'contacts', {
+      admin: [],
+      operator: [],
+      auditor: [],
+      user: [],
+      guest: [],
+      friends: []
+    })
+    let contacts = pvdata.contacts
+    let applyRole = msgObj.content.role
+    let pRole = utils.getPRoleObj(applyRole)
+    let prs = contacts[pRole.value] || [JSON.parse(tokenSDKServer.decryptDidttm(didttm, idpwd).data).pdid]
+    if (prs) {
+      tokenSDKServer.send(Object.assign({}, msgObj.content, {did: msgObj.sender}), prs, 'confirm')
+    } else {
+      // 收集错误
+    }
+  } else {
+    tokenSDKServer.send({type: 'error', message: config.errorMap.verify.message, error: new Error(config.errorMap.verify.message)}, [msgObj.sender], 'confirm')
+  }
+}
+
+// 处理用户角色
+let applyRoleResponse = (msgObj) => {
+  // 检查参数
+  if (!msgObj.content.applicantDid || !msgObj.content.role || typeof(msgObj.content.result) !== 'boolean') {
+    tokenSDKServer.send({type: 'error', message: payload.errorMap.arguments.message}, [msgObj.sender], 'confirm')
+  }
+  // 暂时没有签名
+  let isok = true
+  if (isok) {
+    // 修改用户角色
+    let pvdataStr = tokenSDKServer.getPvData()
+    let pvdata = JSON.parse(pvdataStr)
+    tokenSDKServer.utils.setEmptyProperty(pvdata, 'pendingTask', {})
+    let key = `${msgObj.constent.applicantDid}applyRoleRequest`
+    let value = pendingTask[key]
+    if (value) {
+      // 根据did找到用户信息，修改后再存入redis。
+      redisUtils.str.get(`${config.redis.userPrefix.index}${config.redis.userPrefix.token}${value.msgObj.sender}`).then(({error, result}) => {
+        if (result) {
+          return JOSN.parse(result)
+        } else {
+          return Promise.reject({isError: true, payload: new Error(config.errorMap.queryFail.message)})
+        }
+      })
+      .then(user => {
+        user.role = msgObj.content.role
+        return utils.setUserRds(user).then(({error, result}) => {
+          if (error) {
+            return Promise.reject({isError: true, payload: new Error(config.errorMap.saveFail.message)})
+          } else {
+            // return Promise.reject({isError: false, payload: result})
+            return true
+          }
+        })
+      })
+      // 在pendingTask里移除待办项
+      .then(bool => {
+        if (tokenSDKServer.delPendingTaskItem(key)) { // 该方法是同步操作
+          return true
+        } else {
+          return Promise.reject({isError: true, payload: new Error(config.errorMap.delPendingTask.message)})
+        }
+      })
+      // 给申请者发消息
+      .then(bool => {
+        tokenSDKServer.send({type: 'finish', message: config.errorMap.verify.message}, [value.msgObj.sender], 'confirm')
+      })
+      .catch(({isError, payload}) => {
+        if (isError) {
+          // 收集错误
+        } else {
+        }
+      })
+    } else {
+      // 告诉处理者该待办事项已经被处理了
+      tokenSDKServer.send({type: 'finished', message: config.errorMap.finishedPendingTask.message}, [msgObj.sender], 'confirm')
+    }
+  } else {
+    tokenSDKServer.send({type: 'error', message: config.errorMap.verify.message}, [msgObj.sender], 'confirm')
+  }
+}
+
 // 绑定认证类的回调方法
 let confirmfn = (msgObj) => {
   console.log('confirmfn', msgObj)
@@ -287,6 +393,14 @@ let confirmfn = (msgObj) => {
         // adid的身份证明类证书
         case 'applicationCertificateConfirm':
           adidRandomCodeRequestfn(msgObj)
+          break
+        // 用户申请角色
+        case 'applyRoleRequest':
+          applyRoleRequest(msgObj)
+          break
+        // 处理用户角色
+        case 'applyRoleResponse':
+          applyRoleResponse(msgObj)
           break
         default:
           tokenSDKServer.send({type: 'error', message: config.errorMap.contentType.message}, [msgObj.sender], 'auth')
@@ -425,17 +539,29 @@ let bindfn = (msgObj) => {
         if (error) {
           return Promise.reject({isError: true, payload: error})
         } else {
-          return result
+          return JSON.parse(result)
+          // return result
         }
       })
       .then(user => {
         let origin = null
         if (user) { // 若存在则更新
           // return utils.
-          origin = tokenSDKServer.utils.mergeTrueField(JSON.parse(user), {profile: msgObj.content.userInfo || {}})
+          // origin = tokenSDKServer.utils.mergeTrueField(JSON.parse(user), {profile: msgObj.content.userInfo || {}})
+          origin = tokenSDKServer.utils.mergeTrueField(user, {
+            name: msgObj.content.userInfo.name || '',
+            gender: msgObj.content.userInfo.gender || '',
+            picture: msgObj.content.userInfo.picture || ''
+          })
         } else { // 若不存在则创建
-          origin = {token: msgObj.content.bindInfo.client, profile: msgObj.userInfo}
-          origin = tokenSDKServer.utils.schemeToObj(config.redis.userScheme, origin)
+          // origin = {token: msgObj.content.bindInfo.client, profile: msgObj.userInfo}
+          // origin = tokenSDKServer.utils.schemeToObj(config.redis.userScheme, origin)
+          origin = tokenSDKServer.utils.schemeToObj(config.redis.userScheme, {
+            token: msgObj.content.bindInfo.client,
+            name: msgObj.content.userInfo.name || '',
+            gender: msgObj.content.userInfo.gender || '',
+            picture: msgObj.content.userInfo.picture || ''
+          })
         }
         // console.log('origin', origin)
         // origin = JSON.stringify(origin)
@@ -443,7 +569,7 @@ let bindfn = (msgObj) => {
           if (error) {
             return Promise.reject({isError: true, payload: error})
           } else {
-            return true
+            return origin
           }
         })
       })
@@ -486,6 +612,10 @@ let bindfn = (msgObj) => {
       //     })
       //   }
       // })
+    })
+    // 添加联系人
+    .then(user => {
+      return tokenSDKServer.addContact(user.token)
     })
     // 修改session
     .then (bool => {

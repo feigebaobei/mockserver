@@ -34,18 +34,20 @@ router.route('/test')
     res.sendStatus(200)
   })
   .get(cors.corsWithOptions, (req, res, next) =>{
-    let pvdata = tokenSDKServer.getPvData()
-    pvdata = JSON.parse(pvdata)
-    let pendingTask = pvdata.pendingTask ? pvdata.pendingTask : {}
-    for (let key of Object.keys(pendingTask)) {
-      // utils.opPendingTaskItem(key, pendingTask[key])
-      utils.opPendingTaskItem(key)
-    }
-    res.status(200).json({
-      result: true,
-      message: '',
-      data: 'pvdata'
-    })
+    console.log(tokenSDKServer.decryptDidttm(didttm, idpwd))
+    utils.resFormatter(res, 200, {data: JSON.parse(tokenSDKServer.decryptDidttm(didttm, idpwd).data)})
+    // let pvdata = tokenSDKServer.getPvData()
+    // pvdata = JSON.parse(pvdata)
+    // let pendingTask = pvdata.pendingTask ? pvdata.pendingTask : {}
+    // for (let key of Object.keys(pendingTask)) {
+    //   // utils.opPendingTaskItem(key, pendingTask[key])
+    //   utils.opPendingTaskItem(key)
+    // }
+    // res.status(200).json({
+    //   result: true,
+    //   message: '',
+    //   data: 'pvdata'
+    // })
   })
   .post(cors.corsWithOptions, (req, res, next) => {
     res.send('post')
@@ -621,8 +623,8 @@ router.route('/roleAcl')
     //   console.log('e', e)
     // })
     let permission = ac.can(role).execute('read').sync().on('video')
-    console.log(permission)
-    console.log(permission.granted)
+    // console.log(permission)
+    // console.log(permission.granted)
     if (permission.granted) {
       console.log('allow')
     } else {
